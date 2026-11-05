@@ -49,3 +49,4 @@ next-env.d.ts
 agents/__pycache__/
 **/__pycache__/
 *.pyc
+studio_initial.webp
