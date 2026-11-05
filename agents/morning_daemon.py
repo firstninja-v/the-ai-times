@@ -35,8 +35,21 @@ PUBLIC_EDITIONS = ROOT / "public" / "editions"
 PRINT_OUTPUT = DATA / "print-output"
 PRINTERS = DATA / "printers.json"
 SETTINGS = DATA / "settings.json"
+DELIVERY = DATA / "delivery.json"
 
 POLL_SECONDS = int(os.environ.get("AI_TIMES_MORNING_POLL", "20"))
+
+
+def delivery_state() -> dict:
+    return load_json(
+        DELIVERY,
+        {
+            "paused": False,
+            "pauseMode": "print",
+            "printerId": None,
+            "printerName": None,
+        },
+    )
 
 
 def apply_settings_env() -> None:
@@ -215,7 +228,19 @@ def email_result(profile: dict, result: dict) -> dict:
     )
 
 
-def print_latest(profile: dict, result: dict | None = None) -> dict:
+def print_latest(profile: dict, result: dict | None = None, *, force: bool = False) -> dict:
+    delivery = delivery_state()
+    if (
+        not force
+        and delivery.get("paused")
+        and delivery.get("pauseMode", "print") in {"print", "all"}
+    ):
+        return {
+            "mode": "paused",
+            "reason": "printing paused — resume from Daily agent when you’re home",
+            "printer": delivery.get("printerId"),
+        }
+
     PRINT_OUTPUT.mkdir(parents=True, exist_ok=True)
     src = Path(result["html"]) if result and result.get("html") else PUBLIC_EDITIONS / "latest.html"
     if not src.exists():
@@ -234,10 +259,11 @@ def print_latest(profile: dict, result: dict | None = None) -> dict:
     out.write_text(html, "utf-8")
 
     printers = load_json(PRINTERS, {"printers": []}).get("printers") or []
-    printer_id = profile.get("printerId")
+    # Prefer the once-connected home/office printer from delivery state.
+    printer_id = delivery.get("printerId") or profile.get("printerId")
     printer = next((p for p in printers if p.get("id") == printer_id), None)
     if not printer:
-        printer = next((p for p in printers if p.get("isDefault")), None) or {
+        printer = next((p for p in printers if p.get("isDefault") or p.get("connected")), None) or {
             "id": "ai-times-pdf",
             "name": "AI Times PDF",
             "driver": "file",
@@ -251,7 +277,7 @@ def print_latest(profile: dict, result: dict | None = None) -> dict:
     }
 
     driver = printer.get("driver")
-    if driver == "cups" and shutil.which("lp"):
+    if driver in {"cups", "ipp"} and shutil.which("lp"):
         cmd = [
             "lp",
             "-d",
@@ -264,17 +290,35 @@ def print_latest(profile: dict, result: dict | None = None) -> dict:
         if settings.get("colorMode") == "bw":
             cmd += ["-o", "ColorModel=Gray"]
         cmd.append(str(out))
-        subprocess.run(cmd, check=False)
-        return {"mode": "cups", "printer": printer["id"], "file": str(out)}
+        completed = subprocess.run(cmd, check=False, capture_output=True, text=True)
+        mode = "cups" if driver == "cups" else "ipp"
+        return {
+            "mode": mode,
+            "printer": printer["id"],
+            "printerName": printer.get("name"),
+            "file": str(out),
+            "lp": (completed.stdout or completed.stderr or "").strip()[:240],
+        }
 
     # Universal fallback: leave A4 HTML ready for any local printer UI / CUPS later.
-    return {"mode": "file", "printer": printer.get("id"), "file": str(out)}
+    return {
+        "mode": "file",
+        "printer": printer.get("id"),
+        "printerName": printer.get("name"),
+        "file": str(out),
+        "hint": "No CUPS/IPP driver for this printer yet — connect a home/office printer in Daily agent.",
+    }
 
 
 def process_profile(path: Path, state: dict) -> None:
     profile = load_json(path, {})
     if not profile:
         return
+
+    delivery = delivery_state()
+    # Prefer the once-connected printer for every profile run.
+    if delivery.get("printerId"):
+        profile = {**profile, "printerId": delivery["printerId"], "printEnabled": True}
 
     tz = profile.get("timezone") or "UTC"
     day = datetime.now().strftime("%Y-%m-%d")
@@ -285,6 +329,14 @@ def process_profile(path: Path, state: dict) -> None:
     emailed_key = f"email:{stem}:{day}:{email_time}"
     printed_key = f"print:{stem}:{day}:{print_time}"
     done = set(state.get("doneKeys") or [])
+    paused_all = bool(delivery.get("paused") and delivery.get("pauseMode") == "all")
+    paused_print = bool(delivery.get("paused") and delivery.get("pauseMode", "print") == "print")
+
+    if paused_all:
+        state["paused"] = True
+        state["pauseMode"] = "all"
+        state["updatedAt"] = datetime.now().isoformat()
+        return
 
     # Morning generate + email
     if emailed_key not in done and due_now(email_time, tz):
@@ -302,24 +354,36 @@ def process_profile(path: Path, state: dict) -> None:
 
     # Print pass — reuse today's generation when possible
     if profile.get("printEnabled", True) and printed_key not in done and due_now(print_time, tz):
-        print(f"[morning] print · {stem} @ {print_time} ({tz})")
-        try:
-            result = state.get("lastGenerate")
-            html = Path(str((result or {}).get("html") or ""))
-            if not result or not html.exists():
-                result = generate_for_profile(profile)
-                state["lastGenerate"] = result
-                if emailed_key not in done:
-                    mail = email_result(profile, result)
-                    state["lastEmail"] = mail
-                    done.add(emailed_key)
-            printed = print_latest(profile, result)
-            state["lastPrint"] = printed
+        if paused_print:
+            print(f"[morning] print paused · {stem} (away from home) — skipping hardware print")
+            state["lastPrint"] = {
+                "mode": "paused",
+                "reason": "paused while away",
+                "printer": delivery.get("printerId"),
+            }
             done.add(printed_key)
-            print(f"[morning] print via {printed.get('mode')} → {printed.get('file')}")
-        except Exception as exc:  # noqa: BLE001
-            print(f"[morning] print failed for {stem}: {exc}")
+        else:
+            print(f"[morning] print · {stem} @ {print_time} ({tz}) → {profile.get('printerId')}")
+            try:
+                result = state.get("lastGenerate")
+                html = Path(str((result or {}).get("html") or ""))
+                if not result or not html.exists():
+                    result = generate_for_profile(profile)
+                    state["lastGenerate"] = result
+                    if emailed_key not in done:
+                        mail = email_result(profile, result)
+                        state["lastEmail"] = mail
+                        done.add(emailed_key)
+                printed = print_latest(profile, result)
+                state["lastPrint"] = printed
+                done.add(printed_key)
+                print(f"[morning] print via {printed.get('mode')} → {printed.get('file')}")
+            except Exception as exc:  # noqa: BLE001
+                print(f"[morning] print failed for {stem}: {exc}")
 
+    state["paused"] = bool(delivery.get("paused"))
+    state["pauseMode"] = delivery.get("pauseMode")
+    state["connectedPrinter"] = delivery.get("printerId")
     state["doneKeys"] = list(done)[-800:]
     state["updatedAt"] = datetime.now().isoformat()
 
