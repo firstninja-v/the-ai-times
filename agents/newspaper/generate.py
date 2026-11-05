@@ -122,11 +122,38 @@ def generate_edition(
     html_path = write_edition(html, out_dir / f"{stamp}-{template}.html")
     meta_path = out_dir / f"{stamp}-{template}.json"
     meta_path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
+
+    # Public copy so the web studio can open the paper immediately.
+    public_dir = Path(__file__).resolve().parents[2] / "public" / "editions"
+    public_dir.mkdir(parents=True, exist_ok=True)
+    public_name = f"{stamp}-{template}.html"
+    public_path = public_dir / public_name
+    public_path.write_text(html, encoding="utf-8")
+    latest_path = public_dir / "latest.html"
+    latest_path.write_text(html, encoding="utf-8")
+    (public_dir / "latest.json").write_text(
+        json.dumps(
+            {
+                "file": f"/editions/{public_name}",
+                "latest": "/editions/latest.html",
+                "template": template,
+                "paper_title": paper_title,
+                "generatedAt": datetime.now().isoformat(),
+                "articles": len(plan.articles),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
     print(f"[studio] wrote {html_path}")
+    print(f"[studio] public {public_path}")
 
     result = {
         "html": str(html_path),
         "meta": str(meta_path),
+        "publicUrl": f"/editions/{public_name}",
+        "latestUrl": "/editions/latest.html",
         "template": template,
         "paper_title": paper_title,
         "articles": len(plan.articles),
@@ -142,6 +169,7 @@ def generate_edition(
         )
         result["email"] = mail
 
+    print("RESULT_JSON=" + json.dumps(result))
     return result
 
 

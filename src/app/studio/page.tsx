@@ -1,29 +1,89 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 
-const TEMPLATES = [
-  { id: "classic", name: "Classic Broadsheet", blurb: "Traditional ink masthead, multi-column reading." },
-  { id: "modern", name: "Modern Daily", blurb: "Airy spacing, large lead image, soft rules." },
-  { id: "compact", name: "Compact Brief", blurb: "Fast morning scan with thumbnails." },
-  { id: "broadsheet", name: "Sunday Broadsheet", blurb: "Wide feature photography layout." },
-  { id: "magazine", name: "Magazine Fold", blurb: "Bold cover story and feature grid." },
-] as const;
+type TemplateCard = {
+  id: string;
+  name: string;
+  description: string;
+  previewImage?: string | null;
+  previewHtml?: string | null;
+};
+
+const FALLBACK: TemplateCard[] = [
+  {
+    id: "classic",
+    name: "Classic Broadsheet",
+    description: "Traditional ink masthead, multi-column body, serif readability.",
+    previewImage: "/templates/classic/preview.png",
+    previewHtml: "/templates/classic/preview.html",
+  },
+  {
+    id: "modern",
+    name: "Modern Daily",
+    description: "Clean Apple-like spacing, large lead image, soft rules.",
+    previewImage: "/templates/modern/preview.png",
+    previewHtml: "/templates/modern/preview.html",
+  },
+  {
+    id: "compact",
+    name: "Compact Brief",
+    description: "Dense but readable morning brief for quick scanning.",
+    previewImage: "/templates/compact/preview.png",
+    previewHtml: "/templates/compact/preview.html",
+  },
+  {
+    id: "broadsheet",
+    name: "Sunday Broadsheet",
+    description: "Wide editorial layout with feature photography.",
+    previewImage: "/templates/broadsheet/preview.png",
+    previewHtml: "/templates/broadsheet/preview.html",
+  },
+  {
+    id: "magazine",
+    name: "Magazine Fold",
+    description: "Magazine-inspired feature spread with bold imagery.",
+    previewImage: "/templates/magazine/preview.png",
+    previewHtml: "/templates/magazine/preview.html",
+  },
+];
 
 export default function StudioPage() {
-  const [template, setTemplate] = useState<(typeof TEMPLATES)[number]["id"]>("classic");
+  const [templates, setTemplates] = useState<TemplateCard[]>(FALLBACK);
+  const [template, setTemplate] = useState("classic");
   const [title, setTitle] = useState("The AI Times");
   const [email, setEmail] = useState("");
   const [useLlm, setUseLlm] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [log, setLog] = useState("");
+  const [openUrl, setOpenUrl] = useState<string | null>(null);
+  const [previewBroken, setPreviewBroken] = useState<Record<string, boolean>>({});
+
+  const selected = useMemo(
+    () => templates.find((t) => t.id === template) ?? templates[0],
+    [templates, template],
+  );
+
+  useEffect(() => {
+    void fetch("/api/newspaper/templates")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.templates) && data.templates.length) {
+          setTemplates(data.templates);
+          setTemplate(data.templates[0].id);
+        }
+      })
+      .catch(() => {
+        // keep fallback cards
+      });
+  }, []);
 
   async function generate() {
     setBusy(true);
-    setStatus("Generating designed newspaper…");
+    setStatus("Running Python newspaper studio…");
+    setOpenUrl(null);
     try {
       const res = await fetch("/api/newspaper/generate", {
         method: "POST",
@@ -38,11 +98,12 @@ export default function StudioPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed");
-      setLog(data.stdout || "");
+      const url = data.openUrl || data.result?.publicUrl || "/editions/latest.html";
+      setOpenUrl(url);
       setStatus(
         email
-          ? "Edition generated. Email sent or mocked if SMTP is unset — check `.ai-times/editions/`."
-          : "Edition generated in `.ai-times/editions/`. Open the newest HTML file.",
+          ? `Edition ready. Email ${data.result?.email?.mode === "smtp" ? "sent" : "previewed locally"}.`
+          : "Edition ready — open the full paper below.",
       );
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Failed");
@@ -52,86 +113,205 @@ export default function StudioPage() {
   }
 
   return (
-    <main className="min-h-screen pb-20">
+    <main className="min-h-screen pb-24">
       <SiteHeader
         right={
-          <Link href="/edition" className="btn-ghost">
-            Live edition
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/edition" className="btn-ghost">
+              Live edition
+            </Link>
+            <Link href="/editions/latest.html" className="btn-secondary !h-10 !px-4 !text-[13px]">
+              Latest paper
+            </Link>
+          </div>
         }
       />
-      <div className="mx-auto max-w-3xl px-5 pt-12 sm:px-8">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[hsl(var(--apple-blue))]">
-          Newspaper studio
-        </p>
-        <h1 className="font-display mt-3 text-[clamp(2.4rem,6vw,3.6rem)] font-semibold tracking-[-0.03em]">
-          Ready-made templates
-        </h1>
-        <p className="mt-3 max-w-xl text-[16px] text-[hsl(var(--muted-foreground))]">
-          Python generates readable multi-page papers with images. Drop in any small-model API key
-          (OpenAI-compatible) and SMTP config when you want AI editing + email delivery.
-        </p>
 
-        <div className="mt-8 grid gap-2 sm:grid-cols-2">
-          {TEMPLATES.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setTemplate(item.id)}
-              className={`choice text-left ${template === item.id ? "choice-active" : ""}`}
-            >
-              <div className="font-display text-lg font-semibold">{item.name}</div>
-              <div className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">{item.blurb}</div>
-            </button>
-          ))}
+      <div className="mx-auto max-w-6xl px-5 pt-10 sm:px-8">
+        <div className="max-w-3xl">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[hsl(var(--apple-blue))]">
+            Newspaper studio
+          </p>
+          <h1 className="font-display mt-3 text-[clamp(2.6rem,6vw,4rem)] font-semibold tracking-[-0.035em]">
+            All templates, ready to print
+          </h1>
+          <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+            Five production newspaper designs generated by the Python studio — with photography,
+            multi-page layouts, optional small-model editing, and SMTP delivery.
+          </p>
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <label className="block space-y-2">
-            <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Masthead</span>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
-            />
-          </label>
-          <label className="block space-y-2">
-            <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Email to (optional)</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
-            />
-          </label>
-        </div>
-
-        <label className="choice mt-4 flex cursor-pointer items-center justify-between gap-4">
-          <div>
-            <div className="text-[15px] font-medium">Use small model API</div>
-            <div className="text-[13px] text-[hsl(var(--muted-foreground))]">
-              Requires `LLM_API_KEY` + `LLM_BASE_URL` + `LLM_MODEL` in `.env.local`
+        <div className="mt-10 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2">
+              {templates.map((item) => {
+                const active = template === item.id;
+                const broken = previewBroken[item.id];
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setTemplate(item.id)}
+                    className={`overflow-hidden rounded-[22px] border text-left transition ${
+                      active
+                        ? "border-[rgba(0,113,227,0.55)] shadow-[0_0_0_3px_rgba(0,113,227,0.12)]"
+                        : "border-black/[0.08] hover:border-black/20"
+                    } bg-white`}
+                  >
+                    <div className="relative aspect-[4/5] overflow-hidden bg-[#eceae4]">
+                      {!broken && item.previewImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={`${item.previewImage}?v=1`}
+                          alt={`${item.name} preview`}
+                          className="h-full w-full object-cover object-top"
+                          onError={() =>
+                            setPreviewBroken((prev) => ({ ...prev, [item.id]: true }))
+                          }
+                        />
+                      ) : (
+                        <div className="flex h-full flex-col justify-between p-5">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--masthead))]">
+                            Preview pending
+                          </div>
+                          <div>
+                            <div className="font-display text-2xl font-semibold">{item.name}</div>
+                            <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
+                              Run `npm run agent:paper:previews`
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {active ? (
+                        <div className="absolute left-3 top-3 rounded-full bg-[hsl(var(--apple-blue))] px-3 py-1 text-[11px] font-semibold text-white">
+                          Selected
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="border-t border-black/[0.06] p-4">
+                      <div className="font-display text-[1.15rem] font-semibold tracking-[-0.02em]">
+                        {item.name}
+                      </div>
+                      <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                        {item.description}
+                      </p>
+                      {item.previewHtml ? (
+                        <a
+                          href={item.previewHtml}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-3 inline-flex text-[13px] font-semibold text-[hsl(var(--apple-blue))]"
+                        >
+                          Open full preview →
+                        </a>
+                      ) : null}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
-          <input
-            type="checkbox"
-            checked={useLlm}
-            onChange={(e) => setUseLlm(e.target.checked)}
-            className="h-5 w-5 accent-[hsl(var(--apple-blue))]"
-          />
-        </label>
 
-        <button type="button" className="btn-primary mt-8" disabled={busy} onClick={generate}>
-          {busy ? "Generating…" : `Generate ${template} paper`}
-        </button>
+          <aside className="lg:sticky lg:top-20 lg:self-start">
+            <div className="surface rounded-[28px] p-6">
+              <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[hsl(var(--muted-foreground))]">
+                Generate
+              </div>
+              <h2 className="font-display mt-2 text-3xl font-semibold tracking-[-0.03em]">
+                {selected?.name}
+              </h2>
+              <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
+                {selected?.description}
+              </p>
 
-        {status ? <p className="mt-5 text-[14px] text-[hsl(var(--apple-blue))]">{status}</p> : null}
-        {log ? (
-          <pre className="mt-4 max-h-64 overflow-auto rounded-2xl bg-black/[0.04] p-4 text-[12px] leading-relaxed">
-            {log}
-          </pre>
-        ) : null}
+              <div className="mt-6 space-y-4">
+                <label className="block space-y-2">
+                  <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
+                    Masthead
+                  </span>
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+                  />
+                </label>
+                <label className="block space-y-2">
+                  <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
+                    Email to (optional)
+                  </span>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+                  />
+                </label>
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-black/[0.08] bg-white px-4 py-3">
+                  <div>
+                    <div className="text-[14px] font-medium">Use small model API</div>
+                    <div className="text-[12px] text-[hsl(var(--muted-foreground))]">
+                      LLM_API_KEY + LLM_BASE_URL + LLM_MODEL
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={useLlm}
+                    onChange={(e) => setUseLlm(e.target.checked)}
+                    className="h-5 w-5 accent-[hsl(var(--apple-blue))]"
+                  />
+                </label>
+              </div>
+
+              <button
+                type="button"
+                className="btn-primary mt-6 w-full"
+                disabled={busy}
+                onClick={generate}
+              >
+                {busy ? "Generating with Python…" : `Generate ${selected?.id} paper`}
+              </button>
+
+              {status ? (
+                <p className="mt-4 text-[14px] leading-relaxed text-[hsl(var(--apple-blue))]">
+                  {status}
+                </p>
+              ) : null}
+
+              {openUrl ? (
+                <a
+                  href={openUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-secondary mt-4 w-full"
+                >
+                  Open generated newspaper
+                </a>
+              ) : null}
+
+              {selected?.previewHtml ? (
+                <a
+                  href={selected.previewHtml}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 block text-center text-[13px] font-semibold text-[hsl(var(--muted-foreground))]"
+                >
+                  Preview this template without generating
+                </a>
+              ) : null}
+            </div>
+
+            <div className="mt-4 rounded-[22px] border border-black/[0.06] bg-white/70 p-5 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+              <div className="font-medium text-[hsl(var(--ink))]">Python studio commands</div>
+              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap font-mono text-[12px] text-[hsl(var(--ink))]">
+{`npm run agent:paper:previews
+npm run agent:paper -- --template ${selected?.id}
+npm run agent:paper -- --all-templates`}
+              </pre>
+            </div>
+          </aside>
+        </div>
       </div>
     </main>
   );

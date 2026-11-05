@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { spawn } from "node:child_process";
-import path from "node:path";
 import { z } from "zod";
 
 const schema = z.object({
@@ -30,8 +29,20 @@ export async function POST(request: Request) {
     if (body.email) args.push("--email", body.email);
     if (!body.useLlm) args.push("--no-llm");
 
-    const result = await runPython(args);
-    return NextResponse.json({ ok: true, ...result });
+    const { stdout, stderr, code } = await runPython(args);
+    if (code !== 0) {
+      return NextResponse.json({ error: stderr || stdout || "Generation failed" }, { status: 500 });
+    }
+
+    const match = stdout.split("\n").reverse().find((line) => line.startsWith("RESULT_JSON="));
+    const result = match ? JSON.parse(match.replace("RESULT_JSON=", "")) : null;
+
+    return NextResponse.json({
+      ok: true,
+      result,
+      stdout,
+      openUrl: result?.publicUrl || result?.latestUrl || "/editions/latest.html",
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Newspaper generation failed";
     return NextResponse.json({ error: message }, { status: 400 });
@@ -39,7 +50,7 @@ export async function POST(request: Request) {
 }
 
 function runPython(args: string[]) {
-  return new Promise<{ stdout: string; code: number }>((resolve, reject) => {
+  return new Promise<{ stdout: string; stderr: string; code: number }>((resolve) => {
     const child = spawn("python3", args, {
       cwd: process.cwd(),
       env: process.env,
@@ -53,11 +64,7 @@ function runPython(args: string[]) {
       stderr += d.toString();
     });
     child.on("close", (code) => {
-      if (code !== 0) {
-        reject(new Error(stderr || stdout || `python exited ${code}`));
-        return;
-      }
-      resolve({ stdout, code: code ?? 0 });
+      resolve({ stdout, stderr, code: code ?? 1 });
     });
   });
 }

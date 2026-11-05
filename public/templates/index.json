@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-11-05T04:03:50.110623",
+  "count": 5,
+  "templates": [
+    {
+      "id": "classic",
+      "name": "Classic Broadsheet",
+      "description": "Traditional ink masthead, multi-column body, serif readability.",
+      "previewHtml": "/templates/classic/preview.html",
+      "previewImage": "/templates/classic/preview.png",
+      "generatedAt": "2026-11-05T04:03:28.824333",
+      "pages": 3,
+      "articles": 8
+    },
+    {
+      "id": "modern",
+      "name": "Modern Daily",
+      "description": "Clean Apple-like spacing, large lead image, soft rules.",
+      "previewHtml": "/templates/modern/preview.html",
+      "previewImage": "/templates/modern/preview.png",
+      "generatedAt": "2026-11-05T04:03:33.843821",
+      "pages": 3,
+      "articles": 8
+    },
+    {
+      "id": "compact",
+      "name": "Compact Brief",
+      "description": "Dense but readable morning brief for quick scanning.",
+      "previewHtml": "/templates/compact/preview.html",
+      "previewImage": "/templates/compact/preview.png",
+      "generatedAt": "2026-11-05T04:03:38.755944",
+      "pages": 3,
+      "articles": 8
+    },
+    {
+      "id": "broadsheet",
+      "name": "Sunday Broadsheet",
+      "description": "Wide editorial layout with feature photography.",
+      "previewHtml": "/templates/broadsheet/preview.html",
+      "previewImage": "/templates/broadsheet/preview.png",
+      "generatedAt": "2026-11-05T04:03:43.877299",
+      "pages": 3,
+      "articles": 8
+    },
+    {
+      "id": "magazine",
+      "name": "Magazine Fold",
+      "description": "Magazine-inspired feature spread with bold imagery.",
+      "previewHtml": "/templates/magazine/preview.html",
+      "previewImage": "/templates/magazine/preview.png",
+      "generatedAt": "2026-11-05T04:03:48.884369",
+      "pages": 3,
+      "articles": 8
+    }
+  ]
+}

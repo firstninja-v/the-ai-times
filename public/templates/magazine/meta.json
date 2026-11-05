@@ -1,0 +1,10 @@
+{
+  "id": "magazine",
+  "name": "Magazine Fold",
+  "description": "Magazine-inspired feature spread with bold imagery.",
+  "previewHtml": "/templates/magazine/preview.html",
+  "previewImage": "/templates/magazine/preview.png",
+  "generatedAt": "2026-11-05T04:03:48.884369",
+  "pages": 3,
+  "articles": 8
+}
