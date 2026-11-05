@@ -6,10 +6,12 @@ import { INTEREST_CATALOG } from "@/lib/interests";
 import { LLM_PROVIDERS, type LlmProviderId } from "@/lib/llm-providers";
 import { TITLE_OPTIONS } from "@/lib/paper-titles";
 import { saveProfile } from "@/lib/storage";
+import { PuzzlePicker } from "@/components/puzzle-picker";
+import { DEFAULT_PUZZLES, type PuzzleDifficulty, type PuzzleTypeId } from "@/lib/puzzles";
 import type { ColorMode, PaperKind, PaperTitleStyle, UserProfile } from "@/lib/types";
 import { TemplateGallery } from "@/components/template-gallery";
 
-const STEPS = ["Identity", "Interests", "Delivery", "Templates"] as const;
+const STEPS = ["Identity", "Interests", "Delivery", "Games", "Templates"] as const;
 
 export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperKind }) {
   const router = useRouter();
@@ -39,6 +41,8 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
   const [preferredTemplate, setPreferredTemplate] = useState<
     "classic" | "modern" | "compact" | "broadsheet" | "magazine"
   >("classic");
+  const [puzzles, setPuzzles] = useState<PuzzleTypeId[]>([...DEFAULT_PUZZLES]);
+  const [puzzleDifficulty, setPuzzleDifficulty] = useState<PuzzleDifficulty>("medium");
   const [emailTime, setEmailTime] = useState("06:00");
   const [printEnabled, setPrintEnabled] = useState(true);
   const [printTime, setPrintTime] = useState("06:05");
@@ -124,6 +128,8 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
       colorMode,
       preferredFont,
       preferredTemplate,
+      puzzles,
+      puzzleDifficulty,
       emailTime,
       printEnabled,
       printTime,
@@ -151,7 +157,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
   }
 
   async function finish() {
-    if (!validateThrough(3)) return;
+    if (!validateThrough(4)) return;
     setBusy(true);
     setStatus("Saving profile and generating your selected template…");
     const profile = buildProfile();
@@ -172,6 +178,8 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
           colorMode,
           newsPrompt: newsPrompt || undefined,
           company: profile.company?.companyName,
+          puzzles,
+          puzzleDifficulty,
           byok: profile.byok?.enabled ? profile.byok : undefined,
         }),
       });
@@ -580,6 +588,19 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
       )}
 
       {step === 3 && (
+        <div className="mx-auto max-w-3xl">
+          <div className="surface rounded-[24px] p-6">
+            <PuzzlePicker
+              selected={puzzles}
+              difficulty={puzzleDifficulty}
+              onChange={setPuzzles}
+              onDifficulty={setPuzzleDifficulty}
+            />
+          </div>
+        </div>
+      )}
+
+      {step === 4 && (
         <div className="space-y-4">
           <TemplateGallery
             selectedId={preferredTemplate}
@@ -589,7 +610,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
               )
             }
             title="Pick how your paper looks"
-            subtitle={`Click a template to preview it live. We’ll generate “${previewTitle}” in this style with your pages, font, and color.`}
+            subtitle={`Click a template to preview it live. We’ll generate “${previewTitle}” with your games desk (${puzzles.length} puzzles · ${puzzleDifficulty}).`}
             showLivePreview
           />
         </div>

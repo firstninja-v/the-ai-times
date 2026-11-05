@@ -114,6 +114,11 @@ def generate_for_profile(profile: dict) -> dict:
         if byok.get("model"):
             os.environ["LLM_MODEL"] = byok["model"]
 
+    puzzle_kinds = profile.get("puzzles")
+    if puzzle_kinds is None:
+        puzzle_kinds = ["crossword", "sudoku", "wordsearch"]
+    puzzle_difficulty = profile.get("puzzleDifficulty") or "medium"
+
     result = generate_edition(
         template=template,
         paper_title=paper_title_for(profile),
@@ -125,6 +130,9 @@ def generate_for_profile(profile: dict) -> dict:
         news_prompt=profile.get("newsPrompt"),
         font=font,
         color_mode=color_mode,
+        puzzles=list(puzzle_kinds),
+        puzzle_difficulty=puzzle_difficulty,
+        include_puzzles=bool(puzzle_kinds),
     )
     return result
 

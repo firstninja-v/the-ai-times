@@ -102,12 +102,21 @@ def fetch_feeds(limit: int = 40) -> list[Article]:
     return articles[:limit]
 
 
-def collect_articles(limit: int = 40) -> list[Article]:
-    inbox = load_inbox(limit)
-    if len(inbox) >= max(6, limit // 2):
-        return inbox[:limit]
-    feeds = fetch_feeds(limit)
+def collect_articles(limit: int = 40, *, exclude_ids: set[str] | None = None) -> list[Article]:
+    """Collect stories, preferring ones not already printed in prior editions."""
+    exclude_ids = exclude_ids or set()
+    inbox = load_inbox(limit * 2)
+    feeds = fetch_feeds(limit * 2)
     merged = {a.id: a for a in feeds}
     for article in inbox:
         merged[article.id] = article
-    return list(merged.values())[:limit]
+
+    fresh = [a for a in merged.values() if a.id not in exclude_ids]
+    fresh.sort(key=lambda a: a.score, reverse=True)
+    if len(fresh) >= max(6, limit // 2):
+        return fresh[:limit]
+
+    # If the wire is thin, fall back to full set but still prefer unseen first.
+    rest = [a for a in merged.values() if a.id in exclude_ids]
+    rest.sort(key=lambda a: a.score, reverse=True)
+    return (fresh + rest)[:limit]

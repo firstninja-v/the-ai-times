@@ -79,6 +79,15 @@ npm run agent:paper:daily
 
 Papers render at **A4** (`210mm × 297mm`) with dense multi-column layouts.
 
+### Games desk (daily puzzles)
+
+Pick any of five classic paper games in Setup or Studio — **Crossword, Sudoku, Word Search, Cryptogram, Trivia** — with Easy / Medium / Hard.  
+Each day the Python desk mints a **new unique board** (fingerprints stored in `.ai-times/puzzles/`) and skips news stories already printed, so neither games nor wires repeat.
+
+```bash
+npm run agent:paper -- --puzzles crossword,sudoku,wordsearch,cryptogram,trivia --puzzle-difficulty hard
+```
+
 Optional env:
 
 ```bash

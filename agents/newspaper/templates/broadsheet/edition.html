@@ -4,36 +4,35 @@
   <meta charset="utf-8" />
   <title>{{ paper_title }} — {{ date_label }}</title>
   <style>
-    @page { size: A4 portrait; margin: 9mm; }
+    @page { size: A4 portrait; margin: 8mm; }
     * { box-sizing:border-box; }
-    html, body { margin:0; background:#d9d4c8; color:#0f0f0f; }
-    body { font: 9.5pt/1.32 "Libre Baskerville", Georgia, serif; }
+    html, body { margin:0; background:#d4cfc3; color:#0f0f0f; }
+    body { font: 9pt/1.28 "Libre Baskerville", Georgia, serif; }
     .page {
-      width:210mm; min-height:297mm; margin:6mm auto; background:#f7f4ec;
-      padding:8mm 9mm 10mm; page-break-after:always; box-shadow:0 12px 32px rgba(0,0,0,.14);
+      width:210mm; min-height:297mm; margin:5mm auto; background:#f7f4ec;
+      padding:7mm 8mm 9mm; page-break-after:always; box-shadow:0 12px 30px rgba(0,0,0,.14);
     }
-    .mast { text-align:center; border-bottom:3pt double #111; padding-bottom:2mm; margin-bottom:3mm; }
-    .mast .k { font:700 7.5pt/1 sans-serif; letter-spacing:.28em; text-transform:uppercase; color:#8b1e1e; }
-    .mast h1 { font-size: 26pt; margin:1mm 0; letter-spacing:-.035em; line-height:1; }
-    .mast .d { font:600 7.5pt/1.2 sans-serif; letter-spacing:.06em; text-transform:uppercase; }
-    .feature { display:grid; grid-template-columns: 1.35fr 1fr 1fr; gap:3.5mm; margin-bottom:3.5mm; }
-    .feature .main img { width:100%; height:48mm; object-fit:cover; }
-    .feature h2 { font-size:13pt; line-height:1.12; margin:1.5mm 0; }
-    .side img { width:100%; height:28mm; object-fit:cover; }
-    .side h3 { font-size:10pt; margin:1.2mm 0; line-height:1.18; }
-    .band { font:700 8pt/1 sans-serif; letter-spacing:.16em; text-transform:uppercase; border-top:1.5pt solid #111; border-bottom:0.6pt solid #111; padding:1.2mm 0; margin:2.5mm 0 2mm; }
-    .trio { columns:3; gap:3.5mm; }
-    .story { break-inside:avoid; margin-bottom:3mm; }
-    .story img { width:100%; height:24mm; object-fit:cover; margin-bottom:1.2mm; display:block; }
-    .story strong { font-size:9.5pt; display:block; line-height:1.2; }
-    .story p { margin:0.8mm 0 0; font-size:8.5pt; }
-    .briefs { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2mm 3mm; }
-    .brief { border-top:0.6pt solid #ccc; padding-top:1.2mm; }
-    .brief strong { font-size:8.5pt; display:block; }
-    .brief p { margin:0.4mm 0 0; font-size:8pt; color:#333; }
+    .mast { text-align:center; border-bottom:2.5pt double #111; padding-bottom:1.5mm; margin-bottom:2.5mm; }
+    .mast .k { font:700 7pt/1 sans-serif; letter-spacing:.26em; text-transform:uppercase; color:#8b1e1e; }
+    .mast h1 { font-size: 24pt; margin:1mm 0; letter-spacing:-.035em; line-height:1; }
+    .mast .d { font:600 7pt/1.2 sans-serif; letter-spacing:.06em; text-transform:uppercase; }
+    .feature { display:grid; grid-template-columns: 1.35fr 1fr 1fr; gap:3mm; margin-bottom:3mm; padding-bottom:2.5mm; border-bottom:1pt solid #111; }
+    .feature .main img { width:100%; height:42mm; object-fit:cover; }
+    .feature h2 { font-size:12pt; line-height:1.1; margin:1.2mm 0; }
+    .side img { width:100%; height:24mm; object-fit:cover; }
+    .side h3 { font-size:9.5pt; margin:1mm 0; line-height:1.15; }
+    .pack { column-count:3; column-gap:3.2mm; column-rule:0.45pt solid #bbb; }
+    .story { break-inside:avoid; display:inline-block; width:100%; margin:0 0 2.5mm; padding-top:1.2mm; border-top:0.5pt solid #ccc; }
+    .story img { width:100%; height:20mm; object-fit:cover; margin-bottom:1mm; display:block; }
+    .story strong { font-size:9pt; display:block; line-height:1.15; }
+    .story p { margin:0.6mm 0 0; font-size:8pt; }
+    .rail { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2mm 3mm; margin-top:2.5mm; border-top:1.2pt solid #111; padding-top:2mm; }
+    .brief strong { font-size:8pt; display:block; }
+    .brief p { margin:0.4mm 0 0; font-size:7.5pt; color:#333; }
     @media screen and (max-width:820px){
       .page{width:100%;min-height:auto;margin:0;box-shadow:none;padding:4vw;}
-      .feature,.trio,.briefs{display:block;columns:1;}
+      .feature,.rail{display:block;}
+      .pack{column-count:1;}
     }
     @media print { html,body{background:#fff;} .page{margin:0;box-shadow:none;} }
   </style>
@@ -47,59 +46,41 @@
       <div class="d">{{ date_label }} · {{ weather_line }} · A4 · Page {{ page.number }}/{{ pages|length }}</div>
     </header>
     {% if page.number == 1 %}
-      <p style="font-style:italic;color:#444;margin:0 0 3mm;font-size:9pt;">{{ editor_note }}</p>
-      <div class="feature">
-        {% if page.lead %}
-        <article class="main">
-          <img src="{{ page.lead.image_src }}" alt="" />
-          <h2>{{ page.lead.title }}</h2>
-          <p>{{ page.lead.summary }}</p>
-        </article>
-        {% endif %}
-        {% for article in page.side_features %}
-        <article class="side">
-          <img src="{{ article.image_src }}" alt="" />
-          <h3>{{ article.title }}</h3>
-          <p>{{ article.dek or article.summary }}</p>
-        </article>
-        {% endfor %}
-      </div>
-    {% elif page.lead %}
-      <div class="feature">
-        <article class="main">
-          <img src="{{ page.lead.image_src }}" alt="" />
-          <h2>{{ page.lead.title }}</h2>
-          <p>{{ page.lead.summary }}</p>
-        </article>
-        {% for article in page.side_features[:2] %}
-        <article class="side">
-          <img src="{{ article.image_src }}" alt="" />
-          <h3>{{ article.title }}</h3>
-          <p>{{ article.summary }}</p>
-        </article>
-        {% endfor %}
-      </div>
+      <p style="font-style:italic;color:#444;margin:0 0 2.5mm;font-size:8.5pt;">{{ editor_note }}</p>
     {% endif %}
-    {% for section_name, items in page.groups.items() %}
-      <div class="band">{{ section_name }}</div>
-      <div class="trio">
-        {% for article in items[:6] %}
-        <article class="story">
-          {% if loop.index <= 3 %}<img src="{{ article.image_src }}" alt="" />{% endif %}
-          <strong>{{ article.title }}</strong>
-          <div style="font:600 7pt/1.2 sans-serif;color:#666;margin:0.8mm 0;">{{ article.byline }}</div>
-          <p>{{ article.summary }}</p>
-        </article>
-        {% endfor %}
-      </div>
-      {% if items|length > 6 %}
-      <div class="briefs">
-        {% for article in items[6:] %}
-        <div class="brief"><strong>{{ article.title }}</strong><p>{{ article.summary }}</p></div>
-        {% endfor %}
-      </div>
-      {% endif %}
-    {% endfor %}
+    {% if page.lead %}
+    <div class="feature">
+      <article class="main">
+        <img src="{{ page.lead.image_src }}" alt="" />
+        <h2>{{ page.lead.title }}</h2>
+        <p>{{ page.lead.summary }}</p>
+      </article>
+      {% for article in page.side_features[:2] %}
+      <article class="side">
+        <img src="{{ article.image_src }}" alt="" />
+        <h3>{{ article.title }}</h3>
+        <p>{{ article.dek or article.summary }}</p>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="pack">
+      {% for article in page.stream %}
+      <article class="story">
+        {% if loop.index <= 6 %}<img src="{{ article.image_src }}" alt="" />{% endif %}
+        <strong>{{ article.title }}</strong>
+        <div style="font:600 6.5pt/1.2 sans-serif;color:#666;margin:0.6mm 0;">{{ article.byline }} · {{ article.section }}</div>
+        <p>{{ article.summary }}</p>
+      </article>
+      {% endfor %}
+    </div>
+    {% if page.briefs %}
+    <div class="rail">
+      {% for article in page.briefs %}
+      <div class="brief"><strong>{{ article.title }}</strong><p>{{ article.summary }}</p></div>
+      {% endfor %}
+    </div>
+    {% endif %}
   </section>
   {% endfor %}
 </body>

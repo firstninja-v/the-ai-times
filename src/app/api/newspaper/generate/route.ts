@@ -16,6 +16,10 @@ const schema = z.object({
   useLlm: z.boolean().default(false),
   newsPrompt: z.string().optional(),
   allTemplates: z.boolean().default(false),
+  puzzles: z
+    .array(z.enum(["crossword", "sudoku", "wordsearch", "cryptogram", "trivia"]))
+    .optional(),
+  puzzleDifficulty: z.enum(["easy", "medium", "hard"]).default("medium"),
   byok: z
     .object({
       enabled: z.boolean(),
@@ -46,6 +50,10 @@ export async function POST(request: Request) {
       args.push("--template", body.template);
     }
     args.push("--font", body.font, "--color", body.colorMode);
+    args.push("--puzzle-difficulty", body.puzzleDifficulty);
+    if (body.puzzles) {
+      args.push("--puzzles", body.puzzles.length ? body.puzzles.join(",") : "none");
+    }
     if (body.title) args.push("--title", body.title);
     if (body.company) args.push("--company", body.company);
     if (body.email) args.push("--email", body.email);

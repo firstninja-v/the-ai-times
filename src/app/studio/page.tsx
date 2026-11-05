@@ -5,6 +5,8 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { LLM_PROVIDERS, type LlmProviderId } from "@/lib/llm-providers";
 import { loadProfile, saveProfile } from "@/lib/storage";
+import { PuzzlePicker } from "@/components/puzzle-picker";
+import { DEFAULT_PUZZLES, type PuzzleDifficulty, type PuzzleTypeId } from "@/lib/puzzles";
 import { FALLBACK_TEMPLATES, type TemplateCard } from "@/lib/templates";
 import type { ByokConfig, ColorMode, UserProfile } from "@/lib/types";
 
@@ -29,6 +31,8 @@ export default function StudioPage() {
   const [pages, setPages] = useState(4);
   const [font, setFont] = useState<(typeof FONTS)[number]["id"]>("georgia");
   const [colorMode, setColorMode] = useState<ColorMode>("bw");
+  const [puzzles, setPuzzles] = useState<PuzzleTypeId[]>([...DEFAULT_PUZZLES]);
+  const [puzzleDifficulty, setPuzzleDifficulty] = useState<PuzzleDifficulty>("medium");
   const [byokEnabled, setByokEnabled] = useState(false);
   const [provider, setProvider] = useState<LlmProviderId>("openai");
   const [apiKey, setApiKey] = useState("");
@@ -67,6 +71,8 @@ export default function StudioPage() {
         preferred = profile.preferredTemplate;
         setTemplate(profile.preferredTemplate);
       }
+      if (profile.puzzles?.length) setPuzzles(profile.puzzles);
+      if (profile.puzzleDifficulty) setPuzzleDifficulty(profile.puzzleDifficulty);
       if (profile.byok) {
         setByokEnabled(profile.byok.enabled);
         setProvider(profile.byok.provider);
@@ -130,6 +136,8 @@ export default function StudioPage() {
         colorMode,
         preferredFont: font,
         preferredTemplate: template as UserProfile["preferredTemplate"],
+        puzzles,
+        puzzleDifficulty,
         emailTime: "06:00",
         printEnabled: true,
         printTime: "06:05",
@@ -148,6 +156,8 @@ export default function StudioPage() {
       colorMode,
       preferredFont: font,
       preferredTemplate: template as UserProfile["preferredTemplate"],
+      puzzles,
+      puzzleDifficulty,
       pageCount: pages,
       byok,
     });
@@ -176,6 +186,8 @@ export default function StudioPage() {
           colorMode,
           newsPrompt: newsPrompt || undefined,
           allTemplates,
+          puzzles,
+          puzzleDifficulty,
           byok: byokEnabled
             ? {
                 enabled: true,
@@ -198,7 +210,7 @@ export default function StudioPage() {
       setPreviewUrl(`${openUrl}?t=${Date.now()}`);
       setPreviewKind("generated");
       setStatus(
-        `${allTemplates ? `Generated ${urls.length || 5} templates` : "Edition ready"} · ${pages} pages · ${font} · ${colorMode === "bw" ? "B&W" : "color"}${
+        `${allTemplates ? `Generated ${urls.length || 5} templates` : "Edition ready"} · ${pages} pages · ${font} · ${colorMode === "bw" ? "B&W" : "color"} · ${puzzles.length} puzzles (${puzzleDifficulty})${
           data.llmUsed ? " · LLM used" : " · offline desk editor"
         }. Live preview updated.`,
       );
@@ -397,7 +409,16 @@ export default function StudioPage() {
             </div>
           </div>
 
-          <div id="byok" className="surface rounded-[24px] p-5">
+          <div className="surface rounded-[24px] p-5">
+            <PuzzlePicker
+              selected={puzzles}
+              difficulty={puzzleDifficulty}
+              onChange={setPuzzles}
+              onDifficulty={setPuzzleDifficulty}
+            />
+          </div>
+
+          <div id="byok" className="surface rounded-[24px] p-5 lg:col-span-2">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[hsl(var(--muted-foreground))]">

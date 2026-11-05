@@ -12,6 +12,9 @@ from .fetch import collect_articles
 from .images import attach_images
 from .llm import LLMClient, heuristic_edit
 from .models import Article, EditionPlan
+from .puzzles.catalog import DEFAULT_PUZZLES
+from .puzzles.desk import build_daily_puzzles, render_puzzles_html
+from .puzzles.seed import mark_used, used_article_ids
 from .render import list_templates, render_html, write_edition
 
 
@@ -54,7 +57,7 @@ def build_plan(
     news_prompt: str | None = None,
 ) -> EditionPlan:
     date_label = datetime.now().strftime("%A, %B %d, %Y").replace(" 0", " ")
-    articles = collect_articles(limit=max_articles)
+    articles = collect_articles(limit=max_articles, exclude_ids=used_article_ids())
     if not articles:
         raise RuntimeError("No articles available. Run npm run agent:news first or check network feeds.")
 
@@ -120,6 +123,9 @@ def generate_edition(
     news_prompt: str | None = None,
     font: str = "georgia",
     color_mode: str = "color",
+    puzzles: list[str] | None = None,
+    puzzle_difficulty: str = "medium",
+    include_puzzles: bool = True,
 ) -> dict:
     config = StudioConfig()
     template = template or config.default_template
@@ -130,6 +136,8 @@ def generate_edition(
         font = "georgia"
     if color_mode not in {"bw", "color"}:
         color_mode = "color"
+    if puzzle_difficulty not in {"easy", "medium", "hard"}:
+        puzzle_difficulty = "medium"
 
     plan = build_plan(
         paper_title=paper_title,
@@ -141,13 +149,46 @@ def generate_edition(
         news_prompt=news_prompt,
     )
     html = render_html(plan, template_id=template, pages=pages)
+
+    puzzle_payload: list[dict] = []
+    if include_puzzles:
+        kinds = puzzles if puzzles is not None else list(DEFAULT_PUZZLES)
+        if kinds:
+            puzzle_payload = build_daily_puzzles(
+                kinds=kinds,
+                difficulty=puzzle_difficulty,  # type: ignore[arg-type]
+                record=False,
+            )
+            puzzle_html = render_puzzles_html(
+                puzzle_payload,
+                paper_title=paper_title,
+                date_label=plan.date_label,
+            )
+            if "</body>" in html:
+                html = html.replace("</body>", puzzle_html + "</body>", 1)
+            else:
+                html += puzzle_html
+
+    # Remember puzzles + article ids so tomorrow's paper never repeats them.
+    mark_used(
+        [p["fingerprint"] for p in puzzle_payload if p.get("fingerprint")],
+        day=datetime.now().strftime("%Y-%m-%d"),
+        kinds=[p.get("type") for p in puzzle_payload if p.get("type")],
+        article_ids=[a.id for a in plan.articles],
+    )
+
     html = apply_design(html, font=font, color_mode=color_mode, pages=pages)
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     out_dir = out_dir or EDITIONS
     html_path = write_edition(html, out_dir / f"{stamp}-{template}.html")
     meta_path = out_dir / f"{stamp}-{template}.json"
-    meta_path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
+    meta_blob = plan.to_dict()
+    meta_blob["puzzles"] = [
+        {"id": p.get("id"), "type": p.get("type"), "difficulty": p.get("difficulty"), "title": p.get("title")}
+        for p in puzzle_payload
+    ]
+    meta_path.write_text(json.dumps(meta_blob, indent=2), encoding="utf-8")
 
     # Public copy so the web studio can open the paper immediately.
     public_dir = Path(__file__).resolve().parents[2] / "public" / "editions"
@@ -166,6 +207,8 @@ def generate_edition(
                 "paper_title": paper_title,
                 "generatedAt": datetime.now().isoformat(),
                 "articles": len(plan.articles),
+                "puzzles": [p.get("type") for p in puzzle_payload],
+                "puzzleDifficulty": puzzle_difficulty,
             },
             indent=2,
         ),
@@ -174,6 +217,8 @@ def generate_edition(
 
     print(f"[studio] wrote {html_path}")
     print(f"[studio] public {public_path}")
+    if puzzle_payload:
+        print(f"[studio] puzzles: {', '.join(p['type'] for p in puzzle_payload)} @ {puzzle_difficulty}")
 
     result = {
         "html": str(html_path),
@@ -186,6 +231,8 @@ def generate_edition(
         "pages": pages,
         "font": font,
         "color_mode": color_mode,
+        "puzzles": [p.get("type") for p in puzzle_payload],
+        "puzzleDifficulty": puzzle_difficulty,
         "llm": bool(getattr(plan, "_llm_used", False)),
     }
 
@@ -216,12 +263,25 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--font", default="georgia", choices=sorted(FONTS.keys()))
     parser.add_argument("--color", default="color", choices=["bw", "color"])
     parser.add_argument("--all-templates", action="store_true", help="Render every ready-made template")
+    parser.add_argument(
+        "--puzzles",
+        default="crossword,sudoku,wordsearch",
+        help="Comma list: crossword,sudoku,wordsearch,cryptogram,trivia (or 'none')",
+    )
+    parser.add_argument("--puzzle-difficulty", default="medium", choices=["easy", "medium", "hard"])
     args = parser.parse_args(argv)
 
     if args.list_templates:
         for key, meta in list_templates().items():
             print(f"{key:12}  {meta['name']} — {meta['description']}")
         return 0
+
+    if args.puzzles.strip().lower() in {"", "none", "off", "false"}:
+        puzzle_kinds: list[str] | None = []
+        include_puzzles = False
+    else:
+        puzzle_kinds = [p.strip() for p in args.puzzles.split(",") if p.strip()]
+        include_puzzles = True
 
     templates = list(TEMPLATES_META) if args.all_templates else [args.template]
     for template in templates:
@@ -236,6 +296,9 @@ def main(argv: list[str] | None = None) -> int:
             news_prompt=args.prompt,
             font=args.font,
             color_mode=args.color,
+            puzzles=puzzle_kinds,
+            puzzle_difficulty=args.puzzle_difficulty,
+            include_puzzles=include_puzzles,
         )
         print(json.dumps(result, indent=2))
     return 0

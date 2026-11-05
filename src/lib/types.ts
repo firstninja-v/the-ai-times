@@ -1,5 +1,14 @@
 export type ColorMode = "bw" | "color";
 
+export type PuzzleTypeId =
+  | "crossword"
+  | "sudoku"
+  | "wordsearch"
+  | "cryptogram"
+  | "trivia";
+
+export type PuzzleDifficulty = "easy" | "medium" | "hard";
+
 export type PaperTitleStyle =
   | "the-times"
   | "daily-news"
@@ -69,6 +78,8 @@ export interface UserProfile {
   colorMode: ColorMode;
   preferredFont?: "georgia" | "newsreader" | "libre" | "helvetica" | "system";
   preferredTemplate?: "classic" | "modern" | "compact" | "broadsheet" | "magazine";
+  puzzles?: PuzzleTypeId[];
+  puzzleDifficulty?: PuzzleDifficulty;
   emailTime: string;
   printEnabled: boolean;
   printTime: string;

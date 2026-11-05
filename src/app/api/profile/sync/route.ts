@@ -34,6 +34,10 @@ const schema = z.object({
   preferredTemplate: z
     .enum(["classic", "modern", "compact", "broadsheet", "magazine"])
     .optional(),
+  puzzles: z
+    .array(z.enum(["crossword", "sudoku", "wordsearch", "cryptogram", "trivia"]))
+    .optional(),
+  puzzleDifficulty: z.enum(["easy", "medium", "hard"]).optional(),
   emailTime: z.string(),
   printEnabled: z.boolean(),
   printTime: z.string(),

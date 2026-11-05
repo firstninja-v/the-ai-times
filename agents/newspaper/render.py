@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import mimetypes
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -36,6 +36,8 @@ class PageView:
     groups: dict
     side_features: list
     magazine_items: list
+    stream: list = field(default_factory=list)  # dense flat list for column packing
+    briefs: list = field(default_factory=list)
 
 
 def _article_view(article: Article, section: str) -> dict:
@@ -54,10 +56,10 @@ def _article_view(article: Article, section: str) -> dict:
 
 
 def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
-    """Pack articles densely so A4 pages stay full instead of sparse."""
+    """Pack ~8–10 stories per A4 page in a continuous stream so columns stay full."""
     articles = plan.articles
     if not articles:
-        return [PageView(1, None, {}, [], [])]
+        return [PageView(1, None, {}, [], [], [], [])]
 
     section_for = {}
     for block in plan.sections:
@@ -69,57 +71,49 @@ def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
         section = section_for.get(article.id) or getattr(article, "_section", None) or article.category.title()
         views.append(_article_view(article, section))
 
-    # Aim for ~6–8 stories per A4 page (plus lead on page 1).
-    per_page = 7
+    # Dense packing: prefer filling pages over respecting a high page count with sparse content.
+    per_page = 9
     needed = max(1, (len(views) + per_page - 1) // per_page)
-    pages = max(1, min(pages, needed))
+    pages = max(1, min(int(pages or 1), needed))
 
     lead = views[0]
     rest = views[1:]
 
+    # Distribute remaining stories as evenly as possible, never leaving a nearly-empty page.
     if pages == 1:
-        groups: dict[str, list] = defaultdict(list)
-        for item in rest:
-            groups[item["section"]].append(item)
-        return [
-            PageView(
-                number=1,
-                lead=lead,
-                groups=dict(groups),
-                side_features=rest[:2],
-                magazine_items=rest,
-            )
-        ]
-
-    # Fill page 1 heavier, then pack remaining pages evenly but densely.
-    page1_count = min(len(rest), max(per_page, (len(rest) + pages - 1) // pages + 1))
-    chunks: list[list] = [rest[:page1_count]]
-    remaining = rest[page1_count:]
-    leftover_pages = pages - 1
-    if leftover_pages and remaining:
-        size = max(per_page - 1, (len(remaining) + leftover_pages - 1) // leftover_pages)
-        for i in range(leftover_pages):
-            chunks.append(remaining[i * size : (i + 1) * size])
-    elif leftover_pages:
-        chunks.extend([[] for _ in range(leftover_pages)])
-
-    # Drop empty trailing pages.
-    while len(chunks) > 1 and not chunks[-1]:
-        chunks.pop()
+        chunks = [rest]
+    else:
+        # Page 1 gets a slightly heavier load under the lead.
+        base = len(rest) // pages
+        extra = len(rest) % pages
+        sizes = [base + (1 if i < extra else 0) for i in range(pages)]
+        # Ensure page 1 has at least 5 supporting stories when available.
+        if sizes[0] < min(5, len(rest)) and len(rest) >= 5:
+            deficit = min(5, len(rest)) - sizes[0]
+            for i in range(pages - 1, 0, -1):
+                take = min(deficit, max(0, sizes[i] - 2))
+                sizes[i] -= take
+                sizes[0] += take
+                deficit -= take
+                if deficit <= 0:
+                    break
+        chunks = []
+        idx = 0
+        for size in sizes:
+            chunks.append(rest[idx : idx + size])
+            idx += size
 
     out: list[PageView] = []
     for i, chunk in enumerate(chunks):
-        groups = defaultdict(list)
+        groups: dict[str, list] = defaultdict(list)
+        for item in chunk:
+            groups[item["section"]].append(item)
+
         if i == 0:
             side = chunk[:2]
-            body = chunk[2:]
-            for item in body:
-                groups[item["section"]].append(item)
-            # If body empty, still put side stories into groups so page isn't blank below lead.
-            if not body and side:
-                for item in side:
-                    groups[item["section"]].append(item)
-                side = side[:2]
+            stream = chunk
+            # Briefs = overflow labels for very dense pages (last few without images in templates)
+            briefs = chunk[6:] if len(chunk) > 6 else []
             out.append(
                 PageView(
                     number=1,
@@ -127,12 +121,13 @@ def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
                     groups=dict(groups),
                     side_features=side,
                     magazine_items=chunk,
+                    stream=stream,
+                    briefs=briefs,
                 )
             )
         else:
             page_lead = chunk[0] if chunk else None
             body = chunk[1:] if chunk else []
-            side = body[:2]
             for item in body:
                 groups[item["section"]].append(item)
             out.append(
@@ -140,8 +135,10 @@ def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
                     number=i + 1,
                     lead=page_lead,
                     groups=dict(groups),
-                    side_features=side,
+                    side_features=body[:2],
                     magazine_items=chunk,
+                    stream=chunk,
+                    briefs=chunk[5:] if len(chunk) > 5 else [],
                 )
             )
     return out
