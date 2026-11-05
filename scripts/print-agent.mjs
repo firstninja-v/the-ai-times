@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Quietpress local print agent.
- * Watches `.quietpress/print-queue` and prints queued editions via CUPS (`lp`)
+ * The AI Times local print agent.
+ * Watches `.ai-times/print-queue` and prints queued editions via CUPS (`lp`)
  * or writes a print-ready HTML file you can open and print manually.
  */
 import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
@@ -11,15 +11,15 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const queueDir = path.join(root, ".quietpress", "print-queue");
-const doneDir = path.join(root, ".quietpress", "print-done");
-const outDir = path.join(root, ".quietpress", "print-output");
+const queueDir = path.join(root, ".ai-times", "print-queue");
+const doneDir = path.join(root, ".ai-times", "print-done");
+const outDir = path.join(root, ".ai-times", "print-output");
 
 await mkdir(queueDir, { recursive: true });
 await mkdir(doneDir, { recursive: true });
 await mkdir(outDir, { recursive: true });
 
-console.log("Quietpress print agent watching", queueDir);
+console.log("The AI Times print agent watching", queueDir);
 
 async function renderHtml(job) {
   const { edition } = job;
@@ -44,7 +44,7 @@ async function renderHtml(job) {
       return `
         <section class="sheet" style="page-break-after:always;padding:28px 32px;">
           <header style="text-align:center;margin-bottom:24px;">
-            <div style="font:10px/1 ui-monospace,monospace;letter-spacing:.24em;text-transform:uppercase;color:#b42318;">Quietpress</div>
+            <div style="font:10px/1 ui-monospace,monospace;letter-spacing:.24em;text-transform:uppercase;color:#b42318;">The AI Times</div>
             <h1 style="margin:8px 0;font:700 42px/1.05 Georgia,serif;">${escape(edition.paperTitle)}</h1>
             <div style="font:11px/1.4 ui-sans-serif,system-ui;color:#666;">${escape(edition.dateLabel)} · Page ${page.number}</div>
             <hr style="border:none;border-top:3px solid #111;margin:14px 0 0;" />

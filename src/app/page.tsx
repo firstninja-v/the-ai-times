@@ -15,7 +15,7 @@ export default function HomePage() {
 
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 pb-16 pt-8 sm:px-10">
         <header className="no-print flex items-center justify-between animate-fade">
-          <div className="font-display text-xl font-semibold tracking-tight">Quietpress</div>
+          <div className="font-display text-xl font-semibold tracking-tight">The AI Times</div>
           <Link
             href="/setup"
             className="font-ui text-sm text-muted-foreground transition hover:text-ink"
@@ -27,10 +27,10 @@ export default function HomePage() {
         <section className="relative mt-16 flex flex-1 flex-col justify-center pb-24 sm:mt-0">
           <div className="max-w-2xl">
             <p className="animate-rise font-ui text-[11px] uppercase tracking-[0.28em] text-masthead">
-              Personal morning newspaper
+              AI-curated morning newspaper
             </p>
             <h1 className="animate-rise font-display mt-5 text-5xl font-semibold leading-[0.95] tracking-tight text-ink sm:text-7xl lg:text-8xl">
-              Quietpress
+              The AI Times
             </h1>
             <p
               className="animate-rise mt-6 max-w-md text-lg leading-relaxed text-ink/70"
@@ -89,7 +89,7 @@ export default function HomePage() {
             {[
               {
                 title: "Interest-matched",
-                body: "You choose topics. Quietpress ranks signal and drops slop before it reaches the page.",
+                body: "You choose topics. The AI Times ranks signal and drops slop before it reaches the page.",
               },
               {
                 title: "Email + print",

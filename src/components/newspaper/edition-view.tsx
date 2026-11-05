@@ -12,7 +12,7 @@ export function EditionView({ edition }: { edition: NewspaperEdition }) {
         >
           <header className="mb-6 text-center">
             <p className="font-ui text-[11px] uppercase tracking-[0.28em] text-masthead">
-              Quietpress · Vol. I
+              The AI Times · Vol. I
             </p>
             <h1 className="font-display mt-2 text-4xl font-semibold tracking-tight text-ink sm:text-6xl">
               {edition.paperTitle}

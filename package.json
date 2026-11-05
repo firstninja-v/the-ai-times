@@ -1,8 +1,8 @@
 {
-  "name": "quietpress",
+  "name": "ai-times",
   "version": "0.1.0",
   "private": true,
-  "description": "Your personal morning newspaper — interest-matched, ad-free, emailed and printed daily.",
+  "description": "The AI Times — your personal morning newspaper. Interest-matched, ad-free, emailed & printed daily.",
   "scripts": {
     "dev": "next dev --turbopack --port 43123",
     "build": "next build",

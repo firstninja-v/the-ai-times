@@ -1,8 +1,8 @@
 import type { UserProfile } from "./types";
 
-export const PROFILE_KEY = "quietpress.profile";
-export const LAST_EDITION_KEY = "quietpress.lastEditionId";
-export const SENT_BREAKING_KEY = "quietpress.sentBreaking";
+export const PROFILE_KEY = "ai-times.profile";
+export const LAST_EDITION_KEY = "ai-times.lastEditionId";
+export const SENT_BREAKING_KEY = "ai-times.sentBreaking";
 
 export function loadProfile(): UserProfile | null {
   if (typeof window === "undefined") return null;

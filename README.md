@@ -1,12 +1,12 @@
-# Quietpress
+# The AI Times
 
 **Your personal morning newspaper.** Interest-matched. Ad-free. Emailed every morning. Printed at your desk. Interrupted only for breaking news that actually matters.
 
-Quietpress turns the open web’s RSS into a multi-page paper named after you — *The Sairam Times*, *Daily News*, *The Herald*, and more — then delivers it on your schedule.
+The AI Times turns the open web’s RSS into a multi-page paper named after you — *The Sairam Times*, *Daily News*, *The Herald*, and more — then delivers it on your schedule.
 
 ## Why it exists
 
-Most news products optimize for engagement. Quietpress optimizes for **signal**:
+Most news products optimize for engagement. The AI Times optimizes for **signal**:
 
 - You pick interests; everything else is cut
 - Sponsored / shopping / celebrity-slop patterns are filtered out
@@ -29,7 +29,7 @@ Open [http://127.0.0.1:43123](http://127.0.0.1:43123).
 
 ### Real email (optional)
 
-Copy `.env.example` → `.env.local` and set SMTP credentials. Without SMTP, Quietpress logs a mock send to the server console so local demos still work.
+Copy `.env.example` → `.env.local` and set SMTP credentials. Without SMTP, The AI Times logs a mock send to the server console so local demos still work.
 
 ### Daily printer
 
@@ -37,9 +37,9 @@ Copy `.env.example` → `.env.local` and set SMTP credentials. Without SMTP, Qui
 npm run print-agent
 ```
 
-Keep this running on the machine attached to your printer. When Quietpress queues a morning job (or you click **Print**), the agent:
+Keep this running on the machine attached to your printer. When The AI Times queues a morning job (or you click **Print**), the agent:
 
-1. Writes a print-ready HTML edition under `.quietpress/print-output/`
+1. Writes a print-ready HTML edition under `.ai-times/print-output/`
 2. Sends it to CUPS via `lp` when available
 3. Otherwise leaves the HTML for you to open and print
 

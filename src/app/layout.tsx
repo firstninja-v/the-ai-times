@@ -15,7 +15,7 @@ const ui = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "Quietpress — Your personal morning newspaper",
+  title: "The AI Times — Your personal morning newspaper",
   description:
     "Interest-matched news. No ads. Email every morning. Print at your desk. Breaking alerts when it matters.",
 };

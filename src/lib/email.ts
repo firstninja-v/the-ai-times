@@ -43,12 +43,12 @@ function editionHtml(edition: NewspaperEdition) {
             <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background:#fff;padding:36px 40px;border:1px solid #e4e4e0;">
               <tr>
                 <td>
-                  <div style="font:12px/1 ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;color:#b42318;">Quietpress</div>
+                  <div style="font:12px/1 ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;color:#b42318;">The AI Times</div>
                   <h1 style="margin:10px 0 4px;font:700 34px/1.1 Georgia,serif;">${escapeHtml(edition.paperTitle)}</h1>
                   <div style="font:13px/1.4 ui-sans-serif,system-ui;color:#666;margin-bottom:24px;">${escapeHtml(edition.dateLabel)} · No ads · Interest-matched only</div>
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${items}</table>
                   <p style="margin:28px 0 0;font:12px/1.5 ui-sans-serif,system-ui;color:#888;">
-                    Sent by Quietpress. Open the app to print today's edition.
+                    Sent by The AI Times. Open the app to print today's edition.
                   </p>
                 </td>
               </tr>
@@ -96,11 +96,11 @@ export async function sendBreakingEmail(to: string, paperTitle: string, articles
 }
 
 async function dispatch(to: string, subject: string, html: string, debugPayload: unknown) {
-  const from = process.env.SMTP_FROM || process.env.SMTP_USER || "quietpress@localhost";
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER || "news@theaitimes.local";
   const tx = transporter();
 
   if (!tx) {
-    console.info("[quietpress:email:mock]", { to, subject, preview: debugPayload });
+    console.info("[ai-times:email:mock]", { to, subject, preview: debugPayload });
     return {
       mode: "mock" as const,
       messageId: `mock-${Date.now()}`,

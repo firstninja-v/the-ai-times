@@ -10,7 +10,7 @@ import type { NewspaperEdition, UserProfile } from "@/lib/types";
 
 const SAMPLE_PROFILE: UserProfile = {
   name: "Reader",
-  email: "reader@quietpress.local",
+  email: "reader@ai-times.local",
   titleStyle: "the-times",
   interests: ["technology", "world", "business", "science"],
   colorMode: "bw",
@@ -99,7 +99,7 @@ export default function EditionPage() {
       <div className="no-print mx-auto mb-8 flex max-w-5xl flex-wrap items-center justify-between gap-4">
         <div>
           <Link href="/" className="font-display text-lg font-semibold tracking-tight">
-            Quietpress
+            The AI Times
           </Link>
           <p className="mt-1 text-sm text-muted-foreground">
             {profile ? `${profile.name} · ${profile.interests.length} interests` : "Loading profile…"}

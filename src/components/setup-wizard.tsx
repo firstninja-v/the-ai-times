@@ -170,7 +170,7 @@ export function SetupWizard() {
               What matters
             </h1>
             <p className="mt-3 max-w-lg text-muted-foreground">
-              Quietpress filters for signal. Sponsored posts, shopping bait, and celebrity filler
+              The AI Times filters for signal. Sponsored posts, shopping bait, and celebrity filler
               never make the fold.
             </p>
           </div>

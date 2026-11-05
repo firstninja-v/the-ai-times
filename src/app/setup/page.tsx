@@ -6,7 +6,7 @@ export default function SetupPage() {
     <main className="min-h-screen px-6 py-8 sm:px-10">
       <div className="mx-auto mb-12 flex max-w-2xl items-center justify-between">
         <Link href="/" className="font-display text-lg font-semibold tracking-tight">
-          Quietpress
+          The AI Times
         </Link>
         <span className="font-ui text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
           Free setup

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   try {
     const input = schema.parse(await request.json());
     const edition = await buildEdition(input);
-    const dir = path.join(process.cwd(), ".quietpress", "print-queue");
+    const dir = path.join(process.cwd(), ".ai-times", "print-queue");
     await mkdir(dir, { recursive: true });
 
     const filename = `${edition.id}-${Date.now()}.json`;

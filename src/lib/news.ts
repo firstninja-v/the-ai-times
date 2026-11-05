@@ -34,7 +34,7 @@ const FALLBACK: NewsArticle[] = [
     title: "Markets open steady as central banks hold rates",
     summary:
       "Investors weighed soft inflation prints against resilient labor data. Bond yields eased slightly while major indices opened near flat.",
-    source: "Quietpress Desk",
+    source: "The AI Times Desk",
     url: "#",
     publishedAt: new Date().toISOString(),
     category: "business",
@@ -44,7 +44,7 @@ const FALLBACK: NewsArticle[] = [
     title: "Chipmakers race to secure advanced packaging capacity",
     summary:
       "Foundries and OSAT partners expanded high-density interconnect lines as AI accelerators outpaced traditional packaging supply.",
-    source: "Quietpress Desk",
+    source: "The AI Times Desk",
     url: "#",
     publishedAt: new Date().toISOString(),
     category: "technology",
@@ -54,7 +54,7 @@ const FALLBACK: NewsArticle[] = [
     title: "Climate talks push for clearer carbon-market rules",
     summary:
       "Negotiators circulated a draft clarifying verification standards for cross-border credit trades ahead of the next plenary.",
-    source: "Quietpress Desk",
+    source: "The AI Times Desk",
     url: "#",
     publishedAt: new Date().toISOString(),
     category: "climate",
@@ -65,7 +65,7 @@ const FALLBACK: NewsArticle[] = [
     title: "Public-health agencies update seasonal guidance",
     summary:
       "Updated immunization timing and wastewater surveillance notes were released for clinics preparing for winter respiratory season.",
-    source: "Quietpress Desk",
+    source: "The AI Times Desk",
     url: "#",
     publishedAt: new Date().toISOString(),
     category: "health",
@@ -75,7 +75,7 @@ const FALLBACK: NewsArticle[] = [
     title: "City councils revisit late-night transit funding",
     summary:
       "A regional working group proposed extending weekend rail service after ridership recovered past pre-pandemic Friday peaks.",
-    source: "Quietpress Desk",
+    source: "The AI Times Desk",
     url: "#",
     publishedAt: new Date().toISOString(),
     category: "local",
@@ -85,7 +85,7 @@ const FALLBACK: NewsArticle[] = [
     title: "Researchers map a cleaner path for grid-scale storage",
     summary:
       "A peer-reviewed study outlined lower-cobalt chemistries that keep cycle life competitive for multi-hour storage deployments.",
-    source: "Quietpress Desk",
+    source: "The AI Times Desk",
     url: "#",
     publishedAt: new Date().toISOString(),
     category: "science",
