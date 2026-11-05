@@ -188,7 +188,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Sairam"
+                placeholder="Your name"
                 className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
               />
             </label>

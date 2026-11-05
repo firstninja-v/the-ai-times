@@ -5,7 +5,7 @@ Interest-matched. Ad-free. Sourced from premium wires. Scraped daily with [Scrap
 
 ## What it does
 
-- **Personal papers** — *The Sairam Times*, Daily News, Herald, Post, custom mastheads
+- **Personal papers** — *The [Your Name] Times*, Daily News, Herald, Post, custom mastheads
 - **Company papers** — brand / market / competitor keywords → a private company newspaper
 - **Premium providers** — BBC, Guardian, TechCrunch, NPR, AP & Bloomberg via Google News RSS, plus Scrapling HTML desks
 - **Always-on news agent** — Scrapling + RSS loop that scores importance and raises breaking alerts
