@@ -48,6 +48,7 @@ def save_json(path: Path, data) -> None:
 
 def discover_printers() -> list[dict]:
     printers = []
+    seen: set[str] = set()
     if shutil.which("lpstat"):
         try:
             out = subprocess.check_output(["lpstat", "-p", "-d"], text=True, stderr=subprocess.DEVNULL)
@@ -57,11 +58,13 @@ def discover_printers() -> list[dict]:
                     default = line.split(":", 1)[1].strip()
                 if line.startswith("printer "):
                     name = line.split()[1]
+                    seen.add(name)
                     printers.append(
                         {
                             "id": name,
                             "name": name,
                             "driver": "cups",
+                            "transport": "local",
                             "isDefault": name == default,
                             "supportsColor": True,
                             "paperSizes": ["A4", "Letter", "Tabloid"],
@@ -72,12 +75,30 @@ def discover_printers() -> list[dict]:
         except subprocess.CalledProcessError:
             pass
 
+    # Wi‑Fi / AirPrint discovery on the LAN
+    try:
+        from agents.newspaper.wifi_print import discover_wifi_printers
+
+        for wifi in discover_wifi_printers(timeout=2.5):
+            if wifi["id"] in seen:
+                # Merge URI onto existing CUPS queue when names match
+                for p in printers:
+                    if p["id"] == wifi["id"]:
+                        p.update({k: v for k, v in wifi.items() if k not in {"isDefault"}})
+                        p["transport"] = "wifi"
+                continue
+            seen.add(wifi["id"])
+            printers.append({**wifi, "isDefault": False})
+    except Exception as exc:  # noqa: BLE001
+        print(f"[print] wifi discover skipped: {exc}")
+
     # Always include a virtual printer so the loop works everywhere.
     printers.append(
         {
             "id": "ai-times-pdf",
             "name": "AI Times PDF (universal fallback)",
             "driver": "file",
+            "transport": "file",
             "isDefault": not any(p.get("isDefault") for p in printers),
             "supportsColor": True,
             "paperSizes": ["A4", "Letter", "Tabloid"],
@@ -93,11 +114,15 @@ def discover_printers() -> list[dict]:
             if "|" not in chunk:
                 continue
             name, uri = chunk.split("|", 1)
+            qid = name.strip().replace(" ", "-")
+            if qid in seen:
+                continue
             printers.append(
                 {
-                    "id": name.strip(),
+                    "id": qid,
                     "name": name.strip(),
                     "driver": "ipp",
+                    "transport": "wifi",
                     "uri": uri.strip(),
                     "isDefault": False,
                     "supportsColor": True,
@@ -224,6 +249,20 @@ def escape(value: str) -> str:
 
 def send_to_printer(html_path: Path, printer: dict, settings: dict) -> str:
     driver = printer.get("driver")
+    if driver == "ipp" or printer.get("transport") == "wifi" or printer.get("uri"):
+        try:
+            from agents.newspaper.wifi_print import send_wifi_print
+
+            result = send_wifi_print(
+                html_path,
+                printer,
+                copies=int(settings.get("copies", 1) or 1),
+                media=str(settings.get("paperSize") or "A4"),
+            )
+            return str(result.get("mode") or "wifi-ipp")
+        except Exception as exc:  # noqa: BLE001
+            print(f"[print] wifi send failed: {exc}")
+            return "wifi-error"
     if driver == "cups" and shutil.which("lp"):
         cmd = ["lp", "-d", printer["id"], "-n", str(settings.get("copies", 1))]
         if settings.get("duplex"):
@@ -233,10 +272,6 @@ def send_to_printer(html_path: Path, printer: dict, settings: dict) -> str:
         cmd += ["-o", f"media={settings.get('paperSize', 'A4')}", str(html_path)]
         subprocess.run(cmd, check=False)
         return "cups"
-    if driver == "ipp" and printer.get("uri") and shutil.which("lp"):
-        # CUPS can print to IPP URIs when configured as a destination; fall back to file.
-        subprocess.run(["lp", "-d", printer["id"], str(html_path)], check=False)
-        return "ipp"
     return "file"
 
 

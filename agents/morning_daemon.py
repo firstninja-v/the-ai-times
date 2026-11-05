@@ -277,7 +277,21 @@ def print_latest(profile: dict, result: dict | None = None, *, force: bool = Fal
     }
 
     driver = printer.get("driver")
-    if driver in {"cups", "ipp"} and shutil.which("lp"):
+    transport = printer.get("transport") or ("wifi" if driver == "ipp" or printer.get("uri") else "local")
+
+    # Wi‑Fi / IPP network printers (AirPrint, office LAN, etc.)
+    if driver == "ipp" or transport == "wifi" or printer.get("uri"):
+        from agents.newspaper.wifi_print import send_wifi_print
+
+        sent = send_wifi_print(
+            out,
+            printer,
+            copies=int(settings.get("copies", 1) or 1),
+            media=str(settings.get("paperSize") or "A4"),
+        )
+        return {**sent, "sourceHtml": str(out)}
+
+    if driver == "cups" and shutil.which("lp"):
         cmd = [
             "lp",
             "-d",
@@ -291,9 +305,8 @@ def print_latest(profile: dict, result: dict | None = None, *, force: bool = Fal
             cmd += ["-o", "ColorModel=Gray"]
         cmd.append(str(out))
         completed = subprocess.run(cmd, check=False, capture_output=True, text=True)
-        mode = "cups" if driver == "cups" else "ipp"
         return {
-            "mode": mode,
+            "mode": "cups",
             "printer": printer["id"],
             "printerName": printer.get("name"),
             "file": str(out),
@@ -306,7 +319,7 @@ def print_latest(profile: dict, result: dict | None = None, *, force: bool = Fal
         "printer": printer.get("id"),
         "printerName": printer.get("name"),
         "file": str(out),
-        "hint": "No CUPS/IPP driver for this printer yet — connect a home/office printer in Daily agent.",
+        "hint": "No CUPS/IPP driver for this printer yet — connect a Wi‑Fi or USB printer in Daily agent.",
     }
 
 

@@ -45,6 +45,7 @@ const schema = z.discriminatedUnion("action", [
     pauseMode: z.enum(["print", "all"]).optional(),
   }),
   z.object({ action: z.literal("resume") }),
+  z.object({ action: z.literal("discover_wifi") }),
   z.object({
     action: z.literal("connect_printer"),
     printerId: z.string().min(1),
@@ -62,6 +63,22 @@ const schema = z.discriminatedUnion("action", [
   }),
 ]);
 
+function runPython(code: string) {
+  return new Promise<{ code: number; stdout: string; stderr: string }>((resolve) => {
+    const { spawn } = require("node:child_process") as typeof import("node:child_process");
+    const child = spawn("python3", ["-c", code], { cwd: process.cwd(), env: process.env });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (d) => {
+      stdout += d.toString();
+    });
+    child.stderr.on("data", (d) => {
+      stderr += d.toString();
+    });
+    child.on("close", (c) => resolve({ code: c ?? 1, stdout, stderr }));
+  });
+}
+
 export async function GET() {
   const delivery = await readDelivery();
   const printers = await readPrinters();
@@ -70,9 +87,9 @@ export async function GET() {
     delivery,
     printers: printers.printers || [],
     howPrintWorks: [
-      "Connect your home or office printer once (CUPS discover, or paste an IPP address).",
-      "The daily agent remembers that printer id.",
-      "Every morning at print time it sends today’s A4 paper to that same printer — no click.",
+      "Connect your home or office Wi‑Fi printer once (Scan Wi‑Fi, or paste an IPP address).",
+      "We register it with CUPS and remember that printer for every morning job.",
+      "At print time the agent converts today’s A4 paper to PDF and sends it over Wi‑Fi/IPP — no click.",
       "If you’re away, hit Pause printing. Email can still arrive; the printer stays quiet until Resume.",
       "PDF fallback is only for testing when no hardware printer is available yet.",
     ],
@@ -181,21 +198,109 @@ export async function POST(request: Request) {
       });
     }
 
+    if (body.action === "discover_wifi") {
+      const py = await runPython(
+        "import json; from agents.newspaper.wifi_print import discover_wifi_printers; print(json.dumps(discover_wifi_printers(timeout=3.5)))",
+      );
+      let wifi: Array<Record<string, unknown>> = [];
+      try {
+        wifi = JSON.parse(py.stdout.trim().split("\n").at(-1) || "[]");
+      } catch {
+        wifi = [];
+      }
+      const printersDoc = await readPrinters();
+      const byId = new Map<string, Record<string, unknown>>();
+      for (const p of printersDoc.printers || []) byId.set(p.id, p);
+      for (const w of wifi) {
+        const prev = byId.get(String(w.id)) || {};
+        byId.set(String(w.id), {
+          ...prev,
+          ...w,
+          settings: prev.settings || {
+            paperSize: "A4",
+            colorMode: "bw",
+            duplex: false,
+            copies: 1,
+            orientation: "portrait",
+            autoPrint: true,
+          },
+        });
+      }
+      if (![...byId.keys()].includes("ai-times-pdf")) {
+        byId.set("ai-times-pdf", {
+          id: "ai-times-pdf",
+          name: "AI Times PDF (universal fallback)",
+          driver: "file",
+          transport: "file",
+          isDefault: byId.size === 0,
+          status: "ready",
+          settings: {
+            paperSize: "A4",
+            colorMode: "bw",
+            duplex: false,
+            copies: 1,
+            orientation: "portrait",
+            autoPrint: true,
+          },
+        });
+      }
+      const printers = [...byId.values()];
+      await mkdir(path.dirname(printersPath()), { recursive: true });
+      await writeFile(
+        printersPath(),
+        JSON.stringify({ printers, updatedAt: new Date().toISOString(), count: printers.length }, null, 2),
+        "utf8",
+      );
+      return NextResponse.json({
+        ok: true,
+        printers,
+        wifiCount: wifi.length,
+        message:
+          wifi.length > 0
+            ? `Found ${wifi.length} Wi‑Fi / AirPrint printer(s) on your network. Select one and Connect.`
+            : "No Wi‑Fi printers answered on the LAN. Add your printer’s IPP address manually (often on the sticker or router page).",
+        stderr: py.stderr.slice(-500),
+      });
+    }
+
     if (body.action === "add_ipp") {
+      const reg = await runPython(
+        `import json
+from agents.newspaper.wifi_print import register_cups_ipp, normalize_ipp_uri, probe_ipp
+uri = normalize_ipp_uri(${JSON.stringify(body.uri)})
+probe = probe_ipp(uri)
+reg = register_cups_ipp(${JSON.stringify(body.name)}, uri)
+print(json.dumps({"probe": probe, "reg": reg, "uri": uri}))
+`,
+      );
+      let info: {
+        probe?: { ok?: boolean; error?: string; uri?: string };
+        reg?: Record<string, unknown>;
+        uri?: string;
+      } = {};
+      try {
+        info = JSON.parse(reg.stdout.trim().split("\n").at(-1) || "{}");
+      } catch {
+        info = {};
+      }
+
       const printersDoc = await readPrinters();
       const list = printersDoc.printers || [];
-      const id = body.name.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-|-$/g, "") || "home-printer";
+      const id = String(info.reg?.id || body.name.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-|-$/g, "") || "wifi-printer");
       const entry = {
         id,
         name: body.name,
         driver: "ipp",
-        uri: body.uri,
+        transport: "wifi",
+        uri: info.uri || body.uri,
+        cupsQueue: info.reg?.cupsQueue || id,
         isDefault: Boolean(body.setDefault),
         connected: Boolean(body.setDefault),
         supportsColor: true,
         paperSizes: ["A4", "Letter", "Tabloid"],
         duplex: true,
-        status: "configured",
+        status: info.reg?.ok ? "ready" : info.probe?.ok ? "reachable" : "configured",
+        probe: info.probe,
         settings: {
           paperSize: "A4",
           colorMode: "bw",
@@ -207,7 +312,7 @@ export async function POST(request: Request) {
       };
       const without = list.filter((p: { id: string }) => p.id !== id);
       const printers = body.setDefault
-        ? [...without.map((p: Record<string, unknown>) => ({ ...p, isDefault: false })), { ...entry, isDefault: true }]
+        ? [...without.map((p: Record<string, unknown>) => ({ ...p, isDefault: false, connected: false })), { ...entry, isDefault: true }]
         : [...without, entry];
       await mkdir(path.dirname(printersPath()), { recursive: true });
       await writeFile(
@@ -226,12 +331,16 @@ export async function POST(request: Request) {
         });
       }
 
+      const reach = info.probe?.ok ? "reachable on Wi‑Fi" : `not reachable yet (${info.probe?.error || "check IP/VPN"})`;
+      const cups = info.reg?.ok ? "registered with CUPS" : `CUPS note: ${info.reg?.error || "saved URI only"}`;
       return NextResponse.json({
         ok: true,
         printer: entry,
         printers,
         delivery: deliveryNext,
-        message: `Added network printer “${body.name}”.${body.setDefault ? " Set as everyday printer." : ""}`,
+        message: `Wi‑Fi printer “${body.name}” saved (${reach}; ${cups}).${
+          body.setDefault ? " Set as everyday printer." : ""
+        }`,
       });
     }
 

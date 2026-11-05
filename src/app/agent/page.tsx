@@ -26,6 +26,7 @@ type Printer = {
   id: string;
   name: string;
   driver?: string;
+  transport?: string;
   uri?: string;
   isDefault?: boolean;
   connected?: boolean;
@@ -382,10 +383,11 @@ export default function AgentPage() {
         {/* Printer connect once */}
         <section className="surface mt-6 rounded-3xl p-6 sm:p-8">
           <h2 className="font-display text-xl font-semibold tracking-[-0.02em]">
-            1. Connect home / office printer
+            1. Connect Wi‑Fi / home / office printer
           </h2>
           <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
-            Do this once. Everyday jobs reuse this printer automatically.
+            Works with Wi‑Fi AirPrint and IPP printers. Connect once — everyday jobs reuse it
+            automatically over your network.
           </p>
 
           <div className="mt-5 space-y-3">
@@ -417,7 +419,7 @@ export default function AgentPage() {
                       {p.isDefault ? " · default" : ""}
                     </div>
                     <div className="text-[12px] text-[hsl(var(--muted-foreground))]">
-                      {p.id} · {p.driver || "file"}
+                      {p.id} · {p.transport === "wifi" || p.driver === "ipp" ? "Wi‑Fi/IPP" : p.driver || "file"}
                       {p.uri ? ` · ${p.uri}` : ""}
                       {p.id === "ai-times-pdf" ? " · test fallback (not a real printer)" : ""}
                     </div>
@@ -444,19 +446,27 @@ export default function AgentPage() {
               type="button"
               variant="secondary"
               disabled={busy}
+              onClick={() => void deliveryAction({ action: "discover_wifi" })}
+            >
+              Scan Wi‑Fi printers
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy}
               onClick={async () => {
                 setBusy(true);
                 try {
                   const res = await fetch("/api/print/printers?discover=1");
                   const data = await res.json();
                   setPrinters(data.printers || []);
-                  setMessage(`Found ${(data.printers || []).length} printer(s).`);
+                  setMessage(`Found ${(data.printers || []).length} local/CUPS printer(s).`);
                 } finally {
                   setBusy(false);
                 }
               }}
             >
-              Discover
+              Discover local
             </Button>
             <Button
               type="button"
@@ -474,10 +484,11 @@ export default function AgentPage() {
           </div>
 
           <div className="mt-8 border-t border-black/[0.06] pt-6">
-            <h3 className="text-[14px] font-semibold">Add network printer (IPP)</h3>
+            <h3 className="text-[14px] font-semibold">Add Wi‑Fi printer by address</h3>
             <p className="mt-1 text-[12px] text-[hsl(var(--muted-foreground))]">
-              For Wi‑Fi / office printers. Example: <code>ipp://192.168.1.50/ipp/print</code> or{" "}
-              <code>ipps://printer.local:631/ipp/print</code>
+              If Scan doesn’t find it, paste the printer’s IPP URL (on the sticker, manual, or router).
+              Examples: <code>ipp://192.168.1.50/ipp/print</code>,{" "}
+              <code>ipps://HP-OfficeJet.local/ipp/print</code>, or just <code>192.168.1.50</code>
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
@@ -503,7 +514,7 @@ export default function AgentPage() {
                 })
               }
             >
-              Add & connect IPP printer
+              Add & connect Wi‑Fi printer
             </Button>
           </div>
         </section>
