@@ -42,11 +42,15 @@ next-env.d.ts
 # ai-times local runtime
 .ai-times/
 
-# generated dated editions (keep latest.* tracked)
-/public/editions/[0-9]*.html
-/public/editions/[0-9]*.json
+# generated editions + gallery previews (runtime / local only)
+/public/editions/
+/public/templates/*/preview.html
+/public/templates/*/preview.png
+/public/templates/*/preview.jpg
 
 agents/__pycache__/
 **/__pycache__/
 *.pyc
 studio_initial.webp
+
+!/public/editions/.gitkeep

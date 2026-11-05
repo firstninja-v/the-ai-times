@@ -1,0 +1,7 @@
+# Keep GitHub language stats honest: generated newspaper HTML is not the product.
+public/editions/** linguist-generated=true
+public/templates/** linguist-generated=true
+
+# Agents are first-class source
+agents/**/*.py linguist-detectable=true
+agents/**/*.py linguist-language=Python
