@@ -34,8 +34,71 @@ STATE = DATA / "morning-daemon-state.json"
 PUBLIC_EDITIONS = ROOT / "public" / "editions"
 PRINT_OUTPUT = DATA / "print-output"
 PRINTERS = DATA / "printers.json"
+SETTINGS = DATA / "settings.json"
 
 POLL_SECONDS = int(os.environ.get("AI_TIMES_MORNING_POLL", "20"))
+
+
+def apply_settings_env() -> None:
+    """Push Settings UI SMTP into process env so EmailConfig picks it up."""
+    settings = load_json(SETTINGS, {})
+    email = settings.get("email") or {}
+    if email.get("enabled") and email.get("host") and email.get("user") and email.get("pass"):
+        if email.get("pass") == "••••••••":
+            return
+        os.environ["SMTP_HOST"] = str(email["host"])
+        os.environ["SMTP_PORT"] = str(email.get("port") or 587)
+        os.environ["SMTP_USER"] = str(email["user"])
+        os.environ["SMTP_PASS"] = str(email["pass"])
+        os.environ["SMTP_FROM"] = str(email.get("from") or email["user"])
+        os.environ["SMTP_SECURE"] = "true" if email.get("secure") else "false"
+
+
+def sync_agents_into_profiles() -> None:
+    """Mirror delivery agents from Settings into profile files the loop already watches."""
+    settings = load_json(SETTINGS, {})
+    agents = [a for a in (settings.get("agents") or []) if a.get("enabled", True)]
+    if not agents:
+        return
+    PROFILES.mkdir(parents=True, exist_ok=True)
+    for agent in agents:
+        stem = re_slug(agent.get("name") or agent.get("id") or "agent")
+        path = PROFILES / f"{stem}.json"
+        existing = load_json(path, {})
+        # Prefer personal profile as base when present
+        personal = load_json(DATA / "personal-profile.json", {})
+        base = existing or personal or {
+            "kind": "personal",
+            "name": agent.get("name") or "Reader",
+            "email": os.getenv("NEWSPAPER_EMAIL_TO", personal.get("email") or "reader@theaitimes.local"),
+            "titleStyle": "the-times",
+            "interests": ["technology", "world", "business"],
+            "newsPrompt": "Useful morning coverage. Skip celebrity gossip.",
+            "colorMode": "bw",
+            "preferredFont": "georgia",
+            "preferredTemplate": "classic",
+            "pageCount": 4,
+            "breakingNews": True,
+            "puzzles": ["crossword", "sudoku", "wordsearch", "trivia", "nonogram"],
+            "contentVolume": "more",
+        }
+        merged = {
+            **base,
+            "emailTime": agent.get("emailTime") or base.get("emailTime") or "06:00",
+            "printTime": agent.get("printTime") or base.get("printTime") or "06:05",
+            "printEnabled": bool(agent.get("printEnabled", True)),
+            "printerId": agent.get("printerId") or base.get("printerId"),
+            "timezone": agent.get("timezone") or base.get("timezone") or "America/New_York",
+            "deliveryAgentId": agent.get("id"),
+        }
+        save_json(path, merged)
+
+
+def re_slug(value: str) -> str:
+    import re
+
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", str(value).lower()).strip("-")
+    return slug[:48] or "agent"
 
 
 def load_json(path: Path, default):
@@ -305,13 +368,17 @@ def run_once_force(profile_path: Path | None = None) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(argv or sys.argv[1:])
+    DATA.mkdir(parents=True, exist_ok=True)
+    apply_settings_env()
+    sync_agents_into_profiles()
     if "--once" in argv:
         run_once_force()
         return 0
 
-    DATA.mkdir(parents=True, exist_ok=True)
     print("[morning] The AI Times morning agent online (generate → email → print)")
     while True:
+        apply_settings_env()
+        sync_agents_into_profiles()
         state = load_json(STATE, {"doneKeys": []})
         for path in profile_paths():
             try:

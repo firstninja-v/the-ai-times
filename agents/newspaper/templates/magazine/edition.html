@@ -95,9 +95,8 @@
         </div>
       </article>
       {% endif %}
-      {% set stream = page.stream[1:] if page.lead else page.stream %}
       <div class="pack">
-        {% for article in stream %}
+        {% for article in page.stream %}
         <article class="card">
           {% if loop.index <= (show_images|default(5)) %}<img src="{{ article.image_src }}" alt="" />{% endif %}
           <div class="p">

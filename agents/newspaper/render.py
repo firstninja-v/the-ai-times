@@ -130,6 +130,7 @@ def paginate(plan: EditionPlan, pages: int = 4, *, per_page: int = 9) -> list[Pa
         else:
             page_lead = chunk[0] if chunk else None
             body = chunk[1:] if chunk else []
+            groups = defaultdict(list)
             for item in body:
                 groups[item["section"]].append(item)
             out.append(
@@ -138,9 +139,9 @@ def paginate(plan: EditionPlan, pages: int = 4, *, per_page: int = 9) -> list[Pa
                     lead=page_lead,
                     groups=dict(groups),
                     side_features=body[:2],
-                    magazine_items=chunk,
-                    stream=chunk,
-                    briefs=chunk[5:] if len(chunk) > 5 else [],
+                    magazine_items=body,
+                    stream=body,  # never re-list the page lead in the stream
+                    briefs=body[5:] if len(body) > 5 else [],
                 )
             )
     return out

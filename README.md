@@ -109,18 +109,31 @@ export AI_TIMES_PRINT_POLL=30
 export IPP_PRINTERS="lobby|ipp://192.168.1.50/ipp/print"
 ```
 
+### Settings — agents, printers, email, share
+
+Open [/settings](http://127.0.0.1:43123/settings):
+
+1. **Create agent** — schedule morning generate → email → print
+2. **Connect printer** — discover CUPS/IPP or use PDF fallback + browser Print
+3. **Email** — free Gmail App Password / any SMTP (also writable via Settings → saves `agents/.env`)
+4. **Share** — WhatsApp link, Slack incoming webhook, mailto draft, or copy edition URL
+5. **Run once now** — smoke-test the full delivery loop immediately
+
+Images prefer original wire photos; when a feed has no image (or reuses the same asset), the desk draws a **unique** editorial placeholder — never repeating stock pets.
+
 ### Email (optional)
 
-Copy `.env.example` → `.env.local` and set SMTP. Without SMTP, sends are mocked to the server log.
+Use **Settings → Email**, or copy `.env.example` → `.env.local` and set SMTP. Without SMTP, the agent still writes a local email preview so the loop keeps working.
 
 ## Architecture
 
 | Piece | Role |
 |---|---|
-| Next.js app | Setup, company papers, edition UI, ingest + print APIs |
+| Next.js app | Setup, studio, Settings (agents/printers/email/share), edition UI |
 | `agents/news_agent.py` | Scrapling + premium RSS desk, importance scoring, inbox + breaking ingest |
+| `agents/morning_daemon.py` | Generate A4 paper → email → print on agent schedule |
 | `agents/print_daemon.py` | Printer registry, settings, forever loop, auto print at `printTime` |
-| `.ai-times/` | Local runtime: inbox, profiles, printers, print queue |
+| `.ai-times/` | Local runtime: inbox, profiles, printers, settings, print queue |
 
 ## Company paper flow
 

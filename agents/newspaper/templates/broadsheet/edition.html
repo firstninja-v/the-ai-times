@@ -64,8 +64,9 @@
       {% endfor %}
     </div>
     {% endif %}
+    {% set pack = page.stream[2:] if page.side_features and page.number == 1 else page.stream %}
     <div class="pack">
-      {% for article in page.stream %}
+      {% for article in pack %}
       <article class="story">
         {% if loop.index <= (show_images|default(6)) %}<img src="{{ article.image_src }}" alt="" />{% endif %}
         <strong>{{ article.title }}</strong>

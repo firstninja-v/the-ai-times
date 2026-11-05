@@ -8,8 +8,8 @@ export default function HomePage() {
       <SiteHeader
         right={
           <div className="flex items-center gap-2">
-            <Link href="/#templates" className="btn-ghost hidden sm:inline-flex">
-              Templates
+            <Link href="/settings" className="btn-ghost hidden sm:inline-flex">
+              Settings
             </Link>
             <Link href="/setup" className="btn-secondary !h-10 !px-4 !text-[13px]">
               Start free

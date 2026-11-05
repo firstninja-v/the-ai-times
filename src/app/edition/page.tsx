@@ -109,8 +109,8 @@ export default function EditionPage() {
       <SiteHeader
         right={
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Link href="/studio" className="btn-ghost hidden sm:inline-flex">
-              Templates
+            <Link href="/settings" className="btn-ghost hidden sm:inline-flex">
+              Settings
             </Link>
             <Link href="/setup" className="btn-ghost hidden sm:inline-flex">
               Edit setup
@@ -125,6 +125,21 @@ export default function EditionPage() {
             </button>
             <button type="button" className="btn-secondary !h-10 !px-4 !text-[13px]" onClick={sendEmailNow}>
               Email
+            </button>
+            <button
+              type="button"
+              className="btn-secondary !h-10 !px-4 !text-[13px]"
+              onClick={async () => {
+                const res = await fetch("/api/share", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ channel: "whatsapp" }),
+                });
+                const data = await res.json();
+                if (data.url) window.open(data.url, "_blank");
+              }}
+            >
+              Share
             </button>
             <button type="button" className="btn-primary !h-10 !px-5 !text-[13px]" onClick={queuePrint}>
               Print

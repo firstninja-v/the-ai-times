@@ -85,12 +85,39 @@ def score_article(title: str, summary: str, company_keywords: list[str]) -> tupl
     return score, breaking or score >= 12
 
 
+def entry_image(entry) -> str | None:
+    if entry.get("media_content"):
+        url = entry["media_content"][0].get("url")
+        if url:
+            return url
+    if entry.get("media_thumbnail"):
+        url = entry["media_thumbnail"][0].get("url")
+        if url:
+            return url
+    if entry.get("links"):
+        for link_obj in entry.links:
+            typ = str(link_obj.get("type", ""))
+            if typ.startswith("image") or link_obj.get("rel") == "enclosure":
+                href = link_obj.get("href")
+                if href:
+                    return href
+    raw = entry.get("summary") or entry.get("description") or ""
+    if entry.get("content"):
+        try:
+            raw = entry.content[0].get("value") or raw
+        except Exception:  # noqa: BLE001
+            pass
+    match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', raw, re.I)
+    return match.group(1) if match else None
+
+
 def fetch_rss(provider: dict) -> list[dict]:
     parsed = feedparser.parse(provider["url"])
     items = []
     for entry in parsed.entries[:20]:
         title = (entry.get("title") or "").strip()
-        summary = re.sub(r"<[^>]+>", " ", entry.get("summary") or entry.get("description") or "")
+        raw_html = entry.get("summary") or entry.get("description") or ""
+        summary = re.sub(r"<[^>]+>", " ", raw_html)
         summary = re.sub(r"\s+", " ", summary).strip()[:360]
         link = entry.get("link") or provider["url"]
         published = entry.get("published") or entry.get("updated") or utc_now()
@@ -107,6 +134,7 @@ def fetch_rss(provider: dict) -> list[dict]:
                 "category": provider.get("category", "world"),
                 "providerId": provider["id"],
                 "tier": provider.get("tier", "standard"),
+                "imageUrl": entry_image(entry),
             }
         )
     return items
