@@ -118,6 +118,7 @@ def generate_for_profile(profile: dict) -> dict:
     if puzzle_kinds is None:
         puzzle_kinds = ["crossword", "sudoku", "wordsearch"]
     puzzle_difficulty = profile.get("puzzleDifficulty") or "medium"
+    content_volume = profile.get("contentVolume") or "more"
 
     result = generate_edition(
         template=template,
@@ -133,6 +134,7 @@ def generate_for_profile(profile: dict) -> dict:
         puzzles=list(puzzle_kinds),
         puzzle_difficulty=puzzle_difficulty,
         include_puzzles=bool(puzzle_kinds),
+        content_volume=content_volume,
     )
     return result
 

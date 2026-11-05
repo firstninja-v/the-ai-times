@@ -16,6 +16,7 @@ from .puzzles.catalog import DEFAULT_PUZZLES
 from .puzzles.desk import build_daily_puzzles, render_puzzles_html
 from .puzzles.seed import mark_used, used_article_ids
 from .render import list_templates, render_html, write_edition
+from .volume import resolve_volume
 
 
 def _apply_edits(articles: list[Article], edited_payload: dict) -> tuple[list[Article], dict]:
@@ -31,6 +32,7 @@ def _apply_edits(articles: list[Article], edited_payload: dict) -> tuple[list[Ar
         article.title = item.get("title") or article.title
         article.dek = item.get("dek") or ""
         article.summary = item.get("summary") or article.summary
+        article.body = item.get("body") or item.get("summary") or article.summary
         article.byline = item.get("byline") or f"By {article.source}"
         section = item.get("section") or article.category.title()
         article._section = section  # type: ignore[attr-defined]
@@ -55,7 +57,10 @@ def build_plan(
     use_llm: bool,
     config: StudioConfig,
     news_prompt: str | None = None,
+    content_volume: str = "more",
 ) -> EditionPlan:
+    volume = resolve_volume(content_volume)
+    max_articles = max(max_articles, int(volume["max_articles"]))
     date_label = datetime.now().strftime("%A, %B %d, %Y").replace(" 0", " ")
     articles = collect_articles(limit=max_articles, exclude_ids=used_article_ids())
     if not articles:
@@ -79,6 +84,8 @@ def build_plan(
                 date_label=date_label,
                 articles=articles,
                 company=company or news_prompt,
+                volume_id=volume["id"],
+                body_sentences=int(volume["body_sentences"]),
             )
             llm_used = True
         except Exception as exc:  # noqa: BLE001
@@ -91,9 +98,22 @@ def build_plan(
             date_label=date_label,
             articles=articles,
             company=company or news_prompt,
+            volume=volume,
         )
 
     ordered, meta = _apply_edits(articles, edited)
+    # Ensure every story has expandable reading matter at the chosen volume.
+    from .volume import expand_body
+
+    for article in ordered:
+        if not article.body or len(article.body) < 120:
+            article.body = expand_body(
+                article.title,
+                article.summary or article.body,
+                source=article.source,
+                category=article.category,
+                volume=volume,
+            )
     ordered = attach_images(ordered, meta["image_queries"])
 
     plan = EditionPlan(
@@ -107,6 +127,7 @@ def build_plan(
         template=template,
     )
     plan._llm_used = llm_used  # type: ignore[attr-defined]
+    plan._volume = volume  # type: ignore[attr-defined]
     return plan
 
 
@@ -126,12 +147,14 @@ def generate_edition(
     puzzles: list[str] | None = None,
     puzzle_difficulty: str = "medium",
     include_puzzles: bool = True,
+    content_volume: str = "more",
 ) -> dict:
     config = StudioConfig()
     template = template or config.default_template
     paper_title = paper_title or config.paper_title
     pages = pages or config.pages
-    max_articles = max_articles or config.max_articles
+    volume = resolve_volume(content_volume)
+    max_articles = max(max_articles or 0, int(volume["max_articles"]))
     if font not in FONTS:
         font = "georgia"
     if color_mode not in {"bw", "color"}:
@@ -147,8 +170,15 @@ def generate_edition(
         use_llm=use_llm,
         config=config,
         news_prompt=news_prompt,
+        content_volume=volume["id"],
     )
-    html = render_html(plan, template_id=template, pages=pages)
+    html = render_html(
+        plan,
+        template_id=template,
+        pages=pages,
+        per_page=int(volume["per_page"]),
+        show_images=int(volume["show_images"]),
+    )
 
     puzzle_payload: list[dict] = []
     if include_puzzles:
@@ -233,6 +263,7 @@ def generate_edition(
         "color_mode": color_mode,
         "puzzles": [p.get("type") for p in puzzle_payload],
         "puzzleDifficulty": puzzle_difficulty,
+        "contentVolume": volume["id"],
         "llm": bool(getattr(plan, "_llm_used", False)),
     }
 
@@ -269,6 +300,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Comma list: crossword,sudoku,wordsearch,cryptogram,trivia (or 'none')",
     )
     parser.add_argument("--puzzle-difficulty", default="medium", choices=["easy", "medium", "hard"])
+    parser.add_argument(
+        "--volume",
+        default="more",
+        choices=["less", "medium", "more"],
+        help="How much reading matter: less / medium / more",
+    )
     args = parser.parse_args(argv)
 
     if args.list_templates:
@@ -299,6 +336,7 @@ def main(argv: list[str] | None = None) -> int:
             puzzles=puzzle_kinds,
             puzzle_difficulty=args.puzzle_difficulty,
             include_puzzles=include_puzzles,
+            content_volume=args.volume,
         )
         print(json.dumps(result, indent=2))
     return 0

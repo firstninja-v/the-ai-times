@@ -19,6 +19,7 @@ class Article:
     score: float = 0
     dek: str = ""
     byline: str = ""
+    body: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

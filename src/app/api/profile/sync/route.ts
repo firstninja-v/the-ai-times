@@ -38,6 +38,7 @@ const schema = z.object({
     .array(z.enum(["crossword", "sudoku", "wordsearch", "cryptogram", "trivia"]))
     .optional(),
   puzzleDifficulty: z.enum(["easy", "medium", "hard"]).optional(),
+  contentVolume: z.enum(["less", "medium", "more"]).optional(),
   emailTime: z.string(),
   printEnabled: z.boolean(),
   printTime: z.string(),

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-05T04:52:05.136004",
+  "generatedAt": "2026-11-05T05:03:51.209981",
   "count": 5,
   "templates": [
     {
@@ -8,7 +8,7 @@
       "description": "Traditional ink masthead, multi-column body, serif readability.",
       "previewHtml": "/templates/classic/preview.html",
       "previewImage": "/templates/classic/preview.png",
-      "generatedAt": "2026-11-05T04:51:34.616269",
+      "generatedAt": "2026-11-05T05:03:25.417929",
       "pages": 3,
       "articles": 16
     },
@@ -18,7 +18,7 @@
       "description": "Clean Apple-like spacing, large lead image, soft rules.",
       "previewHtml": "/templates/modern/preview.html",
       "previewImage": "/templates/modern/preview.png",
-      "generatedAt": "2026-11-05T04:51:42.850478",
+      "generatedAt": "2026-11-05T05:03:30.971254",
       "pages": 3,
       "articles": 16
     },
@@ -28,7 +28,7 @@
       "description": "Dense but readable morning brief for quick scanning.",
       "previewHtml": "/templates/compact/preview.html",
       "previewImage": "/templates/compact/preview.png",
-      "generatedAt": "2026-11-05T04:51:49.641743",
+      "generatedAt": "2026-11-05T05:03:38.077703",
       "pages": 3,
       "articles": 16
     },
@@ -38,7 +38,7 @@
       "description": "Wide editorial layout with feature photography.",
       "previewHtml": "/templates/broadsheet/preview.html",
       "previewImage": "/templates/broadsheet/preview.png",
-      "generatedAt": "2026-11-05T04:51:57.442250",
+      "generatedAt": "2026-11-05T05:03:43.570688",
       "pages": 3,
       "articles": 16
     },
@@ -48,7 +48,7 @@
       "description": "Magazine-inspired feature spread with bold imagery.",
       "previewHtml": "/templates/magazine/preview.html",
       "previewImage": "/templates/magazine/preview.png",
-      "generatedAt": "2026-11-05T04:52:03.861438",
+      "generatedAt": "2026-11-05T05:03:49.995006",
       "pages": 3,
       "articles": 16
     }

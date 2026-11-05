@@ -79,6 +79,17 @@ npm run agent:paper:daily
 
 Papers render at **A4** (`210mm × 297mm`) with dense multi-column layouts.
 
+### Reading volume
+
+In Setup or Studio, pick **Less / Medium / More**:
+- **Less** — ~10 shorter stories  
+- **Medium** — ~18 balanced pieces  
+- **More** — ~28 longer bodies (default)
+
+```bash
+npm run agent:paper -- --volume more --pages 4
+```
+
 ### Games desk (daily puzzles)
 
 Pick any of five classic paper games in Setup or Studio — **Crossword, Sudoku, Word Search, Cryptogram, Trivia** — with Easy / Medium / Hard.  

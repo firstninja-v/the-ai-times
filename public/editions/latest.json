@@ -1,14 +1,13 @@
 {
-  "file": "/editions/20261105-045223-modern.html",
+  "file": "/editions/20261105-050355-modern.html",
   "latest": "/editions/latest.html",
   "template": "modern",
   "paper_title": "The AI Times",
-  "generatedAt": "2026-11-05T04:52:23.725878",
-  "articles": 15,
+  "generatedAt": "2026-11-05T05:03:55.203117",
+  "articles": 28,
   "puzzles": [
-    "crossword",
     "sudoku",
     "trivia"
   ],
-  "puzzleDifficulty": "easy"
+  "puzzleDifficulty": "medium"
 }

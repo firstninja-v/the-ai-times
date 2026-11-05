@@ -66,7 +66,7 @@
           <div class="p">
             <div class="tag">{{ article.section }}</div>
             <h3>{{ article.title }}</h3>
-            <p>{{ article.summary }}</p>
+            <p>{{ article.body or article.summary }}</p>
           </div>
         </article>
         {% endfor %}
@@ -74,7 +74,7 @@
       {% if page.briefs %}
       <div class="rail">
         {% for article in page.briefs %}
-        <div class="brief"><strong>{{ article.title }}</strong><span>{{ article.summary }}</span></div>
+        <div class="brief"><strong>{{ article.title }}</strong><span>{{ article.body or article.summary }}</span></div>
         {% endfor %}
       </div>
       {% endif %}
@@ -91,7 +91,7 @@
         <div class="p">
           <div class="tag">{{ page.lead.section }}</div>
           <h3 style="font-size:12pt;">{{ page.lead.title }}</h3>
-          <p>{{ page.lead.summary }}</p>
+          <p>{{ page.lead.body or page.lead.summary }}</p>
         </div>
       </article>
       {% endif %}
@@ -99,11 +99,11 @@
       <div class="pack">
         {% for article in stream %}
         <article class="card">
-          {% if loop.index <= 5 %}<img src="{{ article.image_src }}" alt="" />{% endif %}
+          {% if loop.index <= (show_images|default(5)) %}<img src="{{ article.image_src }}" alt="" />{% endif %}
           <div class="p">
             <div class="tag">{{ article.section }}</div>
             <h3>{{ article.title }}</h3>
-            <p>{{ article.summary }}</p>
+            <p>{{ article.body or article.summary }}</p>
           </div>
         </article>
         {% endfor %}

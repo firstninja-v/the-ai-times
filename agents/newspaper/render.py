@@ -41,11 +41,13 @@ class PageView:
 
 
 def _article_view(article: Article, section: str) -> dict:
+    body = article.body or article.summary
     return {
         "id": article.id,
         "title": article.title,
         "dek": article.dek,
         "summary": article.summary,
+        "body": body,
         "byline": article.byline or f"By {article.source}",
         "section": section,
         "breaking": article.breaking,
@@ -55,8 +57,8 @@ def _article_view(article: Article, section: str) -> dict:
     }
 
 
-def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
-    """Pack ~8–10 stories per A4 page in a continuous stream so columns stay full."""
+def paginate(plan: EditionPlan, pages: int = 4, *, per_page: int = 9) -> list[PageView]:
+    """Pack stories densely per A4 page in a continuous stream so columns stay full."""
     articles = plan.articles
     if not articles:
         return [PageView(1, None, {}, [], [], [], [])]
@@ -72,7 +74,7 @@ def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
         views.append(_article_view(article, section))
 
     # Dense packing: prefer filling pages over respecting a high page count with sparse content.
-    per_page = 9
+    per_page = max(4, int(per_page or 9))
     needed = max(1, (len(views) + per_page - 1) // per_page)
     pages = max(1, min(int(pages or 1), needed))
 
@@ -144,7 +146,14 @@ def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
     return out
 
 
-def render_html(plan: EditionPlan, template_id: str, pages: int = 4) -> str:
+def render_html(
+    plan: EditionPlan,
+    template_id: str,
+    pages: int = 4,
+    *,
+    per_page: int = 9,
+    show_images: int = 6,
+) -> str:
     if template_id not in TEMPLATES_META:
         raise ValueError(f"Unknown template '{template_id}'. Choose from: {', '.join(TEMPLATES_META)}")
 
@@ -153,7 +162,7 @@ def render_html(plan: EditionPlan, template_id: str, pages: int = 4) -> str:
         autoescape=select_autoescape(["html", "xml"]),
     )
     template = env.get_template("edition.html")
-    page_views = paginate(plan, pages=pages)
+    page_views = paginate(plan, pages=pages, per_page=per_page)
     return template.render(
         paper_title=plan.paper_title,
         date_label=plan.date_label,
@@ -162,6 +171,7 @@ def render_html(plan: EditionPlan, template_id: str, pages: int = 4) -> str:
         weather_line=plan.weather_line,
         pages=page_views,
         template=template_id,
+        show_images=show_images,
     )
 
 

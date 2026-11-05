@@ -53,13 +53,13 @@
       <article class="main">
         <img src="{{ page.lead.image_src }}" alt="" />
         <h2>{{ page.lead.title }}</h2>
-        <p>{{ page.lead.summary }}</p>
+        <p>{{ page.lead.body or page.lead.summary }}</p>
       </article>
       {% for article in page.side_features[:2] %}
       <article class="side">
         <img src="{{ article.image_src }}" alt="" />
         <h3>{{ article.title }}</h3>
-        <p>{{ article.dek or article.summary }}</p>
+        <p>{{ article.dek or article.body or article.summary }}</p>
       </article>
       {% endfor %}
     </div>
@@ -67,17 +67,17 @@
     <div class="pack">
       {% for article in page.stream %}
       <article class="story">
-        {% if loop.index <= 6 %}<img src="{{ article.image_src }}" alt="" />{% endif %}
+        {% if loop.index <= (show_images|default(6)) %}<img src="{{ article.image_src }}" alt="" />{% endif %}
         <strong>{{ article.title }}</strong>
         <div style="font:600 6.5pt/1.2 sans-serif;color:#666;margin:0.6mm 0;">{{ article.byline }} · {{ article.section }}</div>
-        <p>{{ article.summary }}</p>
+        <p>{{ article.body or article.summary }}</p>
       </article>
       {% endfor %}
     </div>
     {% if page.briefs %}
     <div class="rail">
       {% for article in page.briefs %}
-      <div class="brief"><strong>{{ article.title }}</strong><p>{{ article.summary }}</p></div>
+      <div class="brief"><strong>{{ article.title }}</strong><p>{{ article.body or article.summary }}</p></div>
       {% endfor %}
     </div>
     {% endif %}

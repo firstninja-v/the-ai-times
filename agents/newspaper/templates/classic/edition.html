@@ -63,7 +63,7 @@
         <h2>{{ page.lead.title }}</h2>
         {% if page.lead.dek %}<p class="dek">{{ page.lead.dek }}</p>{% endif %}
         <div class="byline">{{ page.lead.byline }}</div>
-        <p class="summary">{{ page.lead.summary }}</p>
+        <p class="summary">{{ page.lead.body or page.lead.summary }}</p>
       </div>
       <figure>
         <img src="{{ page.lead.image_src }}" alt="{{ page.lead.title }}" />
@@ -73,11 +73,11 @@
     <div class="pack">
       {% for article in page.stream %}
       <article class="card">
-        {% if loop.index <= 6 %}<img src="{{ article.image_src }}" alt="{{ article.title }}" />{% endif %}
+        {% if loop.index <= (show_images|default(6)) %}<img src="{{ article.image_src }}" alt="{{ article.title }}" />{% endif %}
         <div class="section-label">{{ article.section }}</div>
         <h3>{{ article.title }}</h3>
         <div class="byline">{{ article.byline }}</div>
-        <p class="summary">{{ article.summary }}</p>
+        <p class="summary">{{ article.body or article.summary }}</p>
       </article>
       {% endfor %}
     </div>
@@ -86,7 +86,7 @@
       {% for article in page.briefs %}
       <article class="brief">
         <h4>{{ article.title }}</h4>
-        <p>{{ article.summary }}</p>
+        <p>{{ article.body or article.summary }}</p>
       </article>
       {% endfor %}
     </div>

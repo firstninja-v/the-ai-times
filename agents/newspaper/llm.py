@@ -106,12 +106,14 @@ class LLMClient:
         date_label: str,
         articles: list[Article],
         company: str | None = None,
+        volume_id: str = "more",
+        body_sentences: int = 5,
     ) -> dict[str, Any]:
         compact = [
             {
                 "id": a.id,
                 "title": a.title,
-                "summary": a.summary[:280],
+                "summary": a.summary[:420],
                 "source": a.source,
                 "category": a.category,
                 "breaking": a.breaking,
@@ -119,11 +121,12 @@ class LLMClient:
             for a in articles
         ]
         prompt = f"""
-Create today's newspaper plan.
+Create today's newspaper plan with REAL READING MATTER — not tiny blurbs.
 
 Paper title: {paper_title}
 Date: {date_label}
 Company focus: {company or "general audience"}
+Content volume: {volume_id} (target about {body_sentences} sentences of body per story)
 
 Articles JSON:
 {json.dumps(compact, ensure_ascii=False)}
@@ -136,7 +139,8 @@ Return JSON with keys:
   - id
   - title (improved headline, max 14 words)
   - dek (1 sentence subhead)
-  - summary (2-3 clean sentences)
+  - summary (short teaser, 1-2 sentences)
+  - body ({body_sentences} clean newspaper sentences expanding the wire — no hype, no ads, grounded in the given summary)
   - byline (e.g. "By The AI Times Desk" or source-based)
   - section (one of: Lead, World, Business, Technology, Science, Culture, Sports, Company, Briefs)
   - image_query (3-6 word photo search phrase)
@@ -150,8 +154,12 @@ def heuristic_edit(
     date_label: str,
     articles: list[Article],
     company: str | None = None,
+    volume: dict | None = None,
 ) -> dict[str, Any]:
     """Offline fallback when no API key is configured."""
+    from .volume import expand_body, resolve_volume
+
+    volume = volume or resolve_volume("more")
     section_map = {
         "world": "World",
         "business": "Business",
@@ -169,12 +177,20 @@ def heuristic_edit(
         section = "Lead" if idx == 0 else section_map.get(article.category, "Briefs")
         if company and company.lower() in f"{article.title} {article.summary}".lower():
             section = "Company" if idx else "Lead"
+        body = expand_body(
+            article.title,
+            article.summary,
+            source=article.source,
+            category=article.category,
+            volume=volume,
+        )
         edited.append(
             {
                 "id": article.id,
                 "title": article.title,
-                "dek": article.summary.split(".")[0][:140],
+                "dek": article.summary.split(".")[0][:160],
                 "summary": article.summary,
+                "body": body,
                 "byline": f"By {article.source}",
                 "section": section,
                 "image_query": f"{article.category} news photography",
@@ -185,7 +201,7 @@ def heuristic_edit(
         "editor_note": (
             f"{paper_title} gathered today's strongest stories"
             + (f" for {company}" if company else "")
-            + " and cut the noise."
+            + f" in a {volume.get('label', 'full')} reading pack."
         ),
         "weather_line": "Clear skies for focused reading.",
         "articles": edited,

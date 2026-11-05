@@ -9,6 +9,8 @@ export type PuzzleTypeId =
 
 export type PuzzleDifficulty = "easy" | "medium" | "hard";
 
+export type ContentVolume = "less" | "medium" | "more";
+
 export type PaperTitleStyle =
   | "the-times"
   | "daily-news"
@@ -80,6 +82,7 @@ export interface UserProfile {
   preferredTemplate?: "classic" | "modern" | "compact" | "broadsheet" | "magazine";
   puzzles?: PuzzleTypeId[];
   puzzleDifficulty?: PuzzleDifficulty;
+  contentVolume?: ContentVolume;
   emailTime: string;
   printEnabled: boolean;
   printTime: string;

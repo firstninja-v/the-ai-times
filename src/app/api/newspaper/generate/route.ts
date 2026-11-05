@@ -20,6 +20,7 @@ const schema = z.object({
     .array(z.enum(["crossword", "sudoku", "wordsearch", "cryptogram", "trivia"]))
     .optional(),
   puzzleDifficulty: z.enum(["easy", "medium", "hard"]).default("medium"),
+  contentVolume: z.enum(["less", "medium", "more"]).default("more"),
   byok: z
     .object({
       enabled: z.boolean(),
@@ -34,7 +35,8 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const body = schema.parse(await request.json());
-    const maxArticles = Math.max(14, body.pages * 5);
+    const volumeMax = body.contentVolume === "less" ? 10 : body.contentVolume === "medium" ? 18 : 28;
+    const maxArticles = Math.max(volumeMax, body.pages * (body.contentVolume === "less" ? 3 : 5));
     const args = [
       "-m",
       "agents.newspaper",
@@ -42,6 +44,8 @@ export async function POST(request: Request) {
       String(body.pages),
       "--max-articles",
       String(maxArticles),
+      "--volume",
+      body.contentVolume,
     ];
 
     if (body.allTemplates) {

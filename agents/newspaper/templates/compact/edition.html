@@ -46,17 +46,17 @@
       <div>
         <div class="meta">{{ page.lead.section }} · {{ page.lead.byline }}</div>
         <h2>{{ page.lead.title }}</h2>
-        <p>{{ page.lead.summary }}</p>
+        <p>{{ page.lead.body or page.lead.summary }}</p>
       </div>
     </article>
     {% endif %}
     <div class="pack">
       {% for article in page.stream %}
       <article class="item">
-        {% if loop.index <= 5 %}<img src="{{ article.image_src }}" alt="" />{% endif %}
+        {% if loop.index <= (show_images|default(5)) %}<img src="{{ article.image_src }}" alt="" />{% endif %}
         <div class="meta">{{ article.section }} · {{ article.byline }}</div>
         <h3>{{ article.title }}</h3>
-        <p>{{ article.summary }}</p>
+        <p>{{ article.body or article.summary }}</p>
       </article>
       {% endfor %}
     </div>

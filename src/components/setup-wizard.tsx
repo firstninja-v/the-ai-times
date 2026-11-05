@@ -6,7 +6,9 @@ import { INTEREST_CATALOG } from "@/lib/interests";
 import { LLM_PROVIDERS, type LlmProviderId } from "@/lib/llm-providers";
 import { TITLE_OPTIONS } from "@/lib/paper-titles";
 import { saveProfile } from "@/lib/storage";
+import { ContentVolumePicker } from "@/components/content-volume-picker";
 import { PuzzlePicker } from "@/components/puzzle-picker";
+import type { ContentVolume } from "@/lib/content-volume";
 import { DEFAULT_PUZZLES, type PuzzleDifficulty, type PuzzleTypeId } from "@/lib/puzzles";
 import type { ColorMode, PaperKind, PaperTitleStyle, UserProfile } from "@/lib/types";
 import { TemplateGallery } from "@/components/template-gallery";
@@ -43,6 +45,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
   >("classic");
   const [puzzles, setPuzzles] = useState<PuzzleTypeId[]>([...DEFAULT_PUZZLES]);
   const [puzzleDifficulty, setPuzzleDifficulty] = useState<PuzzleDifficulty>("medium");
+  const [contentVolume, setContentVolume] = useState<ContentVolume>("more");
   const [emailTime, setEmailTime] = useState("06:00");
   const [printEnabled, setPrintEnabled] = useState(true);
   const [printTime, setPrintTime] = useState("06:05");
@@ -130,6 +133,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
       preferredTemplate,
       puzzles,
       puzzleDifficulty,
+      contentVolume,
       emailTime,
       printEnabled,
       printTime,
@@ -180,6 +184,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
           company: profile.company?.companyName,
           puzzles,
           puzzleDifficulty,
+          contentVolume,
           byok: profile.byok?.enabled ? profile.byok : undefined,
         }),
       });
@@ -390,6 +395,8 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
                 );
               })}
             </div>
+
+            <ContentVolumePicker value={contentVolume} onChange={setContentVolume} />
 
             <div className="grid gap-4 sm:grid-cols-3">
               <label className="block space-y-2">

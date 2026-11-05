@@ -40,8 +40,8 @@ def write_preview_html(template: str, paper_title: str = "The AI Times") -> Path
     if template not in TEMPLATES_META:
         raise ValueError(f"Unknown template: {template}")
     plan = build_preview_plan(template, paper_title=paper_title)
-    html = render_html(plan, template_id=template, pages=2)
-    html = apply_design(html, font="georgia", color_mode="color", pages=3)
+    html = render_html(plan, template_id=template, pages=2, per_page=8, show_images=6)
+    html = apply_design(html, font="georgia", color_mode="color", pages=2)
     out_dir = PUBLIC_PREVIEWS / template
     out_dir.mkdir(parents=True, exist_ok=True)
     html_path = write_edition(html, out_dir / "preview.html")

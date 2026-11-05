@@ -5,7 +5,9 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { LLM_PROVIDERS, type LlmProviderId } from "@/lib/llm-providers";
 import { loadProfile, saveProfile } from "@/lib/storage";
+import { ContentVolumePicker } from "@/components/content-volume-picker";
 import { PuzzlePicker } from "@/components/puzzle-picker";
+import type { ContentVolume } from "@/lib/content-volume";
 import { DEFAULT_PUZZLES, type PuzzleDifficulty, type PuzzleTypeId } from "@/lib/puzzles";
 import { FALLBACK_TEMPLATES, type TemplateCard } from "@/lib/templates";
 import type { ByokConfig, ColorMode, UserProfile } from "@/lib/types";
@@ -33,6 +35,7 @@ export default function StudioPage() {
   const [colorMode, setColorMode] = useState<ColorMode>("bw");
   const [puzzles, setPuzzles] = useState<PuzzleTypeId[]>([...DEFAULT_PUZZLES]);
   const [puzzleDifficulty, setPuzzleDifficulty] = useState<PuzzleDifficulty>("medium");
+  const [contentVolume, setContentVolume] = useState<ContentVolume>("more");
   const [byokEnabled, setByokEnabled] = useState(false);
   const [provider, setProvider] = useState<LlmProviderId>("openai");
   const [apiKey, setApiKey] = useState("");
@@ -73,6 +76,7 @@ export default function StudioPage() {
       }
       if (profile.puzzles?.length) setPuzzles(profile.puzzles);
       if (profile.puzzleDifficulty) setPuzzleDifficulty(profile.puzzleDifficulty);
+      if (profile.contentVolume) setContentVolume(profile.contentVolume);
       if (profile.byok) {
         setByokEnabled(profile.byok.enabled);
         setProvider(profile.byok.provider);
@@ -138,6 +142,7 @@ export default function StudioPage() {
         preferredTemplate: template as UserProfile["preferredTemplate"],
         puzzles,
         puzzleDifficulty,
+        contentVolume,
         emailTime: "06:00",
         printEnabled: true,
         printTime: "06:05",
@@ -158,6 +163,7 @@ export default function StudioPage() {
       preferredTemplate: template as UserProfile["preferredTemplate"],
       puzzles,
       puzzleDifficulty,
+      contentVolume,
       pageCount: pages,
       byok,
     });
@@ -188,6 +194,7 @@ export default function StudioPage() {
           allTemplates,
           puzzles,
           puzzleDifficulty,
+          contentVolume,
           byok: byokEnabled
             ? {
                 enabled: true,
@@ -210,7 +217,7 @@ export default function StudioPage() {
       setPreviewUrl(`${openUrl}?t=${Date.now()}`);
       setPreviewKind("generated");
       setStatus(
-        `${allTemplates ? `Generated ${urls.length || 5} templates` : "Edition ready"} · ${pages} pages · ${font} · ${colorMode === "bw" ? "B&W" : "color"} · ${puzzles.length} puzzles (${puzzleDifficulty})${
+        `${allTemplates ? `Generated ${urls.length || 5} templates` : "Edition ready"} · ${contentVolume} matter · ${pages} pages · ${font} · ${colorMode === "bw" ? "B&W" : "color"} · ${puzzles.length} puzzles (${puzzleDifficulty})${
           data.llmUsed ? " · LLM used" : " · offline desk editor"
         }. Live preview updated.`,
       );
@@ -357,6 +364,8 @@ export default function StudioPage() {
                   ))}
                 </div>
               </div>
+
+              <ContentVolumePicker value={contentVolume} onChange={setContentVolume} />
 
               <label className="block space-y-1.5">
                 <span className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">

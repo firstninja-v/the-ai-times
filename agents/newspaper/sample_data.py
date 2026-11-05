@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from .models import Article
+from .volume import expand_body, resolve_volume
 
 
 def sample_articles() -> list[Article]:
     """Deterministic, image-friendly desk copy for template previews."""
-    return [
+    volume = resolve_volume("more")
+    raw = [
         Article(
             id="samp-1",
             title="Markets steady as chipmakers expand advanced packaging lines",
@@ -184,3 +186,12 @@ def sample_articles() -> list[Article]:
             byline="By Metro Bureau",
         ),
     ]
+    for article in raw:
+        article.body = expand_body(
+            article.title,
+            article.summary,
+            source=article.source,
+            category=article.category,
+            volume=volume,
+        )
+    return raw

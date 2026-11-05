@@ -59,7 +59,7 @@
           <div class="tag">{{ page.lead.section }}{% if page.lead.breaking %} · Breaking{% endif %}</div>
           <h2>{{ page.lead.title }}</h2>
           <div class="by">{{ page.lead.byline }}</div>
-          <p>{{ page.lead.summary }}</p>
+          <p>{{ page.lead.body or page.lead.summary }}</p>
         </div>
       </article>
     {% elif page.lead %}
@@ -69,25 +69,25 @@
           <div class="tag">{{ page.lead.section }}</div>
           <h2>{{ page.lead.title }}</h2>
           <div class="by">{{ page.lead.byline }}</div>
-          <p>{{ page.lead.summary }}</p>
+          <p>{{ page.lead.body or page.lead.summary }}</p>
         </div>
       </article>
     {% endif %}
     <div class="pack">
       {% for article in page.stream %}
       <article class="card">
-        {% if loop.index <= 6 %}<img src="{{ article.image_src }}" alt="{{ article.title }}" />{% endif %}
+        {% if loop.index <= (show_images|default(6)) %}<img src="{{ article.image_src }}" alt="{{ article.title }}" />{% endif %}
         <div class="tag">{{ article.section }}</div>
         <h3>{{ article.title }}</h3>
         <div class="by">{{ article.byline }}</div>
-        <p>{{ article.summary }}</p>
+        <p>{{ article.body or article.summary }}</p>
       </article>
       {% endfor %}
     </div>
     {% if page.briefs %}
     <div class="rail">
       {% for article in page.briefs %}
-      <div class="brief"><strong>{{ article.title }}</strong><span>{{ article.summary }}</span></div>
+      <div class="brief"><strong>{{ article.title }}</strong><span>{{ article.body or article.summary }}</span></div>
       {% endfor %}
     </div>
     {% endif %}
