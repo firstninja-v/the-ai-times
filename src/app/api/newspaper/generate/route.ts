@@ -35,8 +35,8 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const body = schema.parse(await request.json());
-    const volumeMax = body.contentVolume === "less" ? 10 : body.contentVolume === "medium" ? 18 : 28;
-    const maxArticles = Math.max(volumeMax, body.pages * (body.contentVolume === "less" ? 3 : 5));
+    const volumeMax = body.contentVolume === "less" ? 14 : body.contentVolume === "medium" ? 24 : 36;
+    const maxArticles = Math.max(volumeMax, body.pages * (body.contentVolume === "less" ? 8 : 12));
     const args = [
       "-m",
       "agents.newspaper",

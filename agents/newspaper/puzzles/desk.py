@@ -183,39 +183,57 @@ def render_solutions(puzzles: list[dict[str, Any]]) -> str:
 
 
 PUZZLE_CSS = """
-.pz-page { width:210mm; min-height:297mm; margin:8mm auto; background:#fbfaf6; padding:9mm 10mm 12mm; page-break-after:always; box-shadow:0 12px 32px rgba(0,0,0,.12); }
-.pz-page h1.games-mast { font:700 18pt Georgia,serif; margin:0 0 2mm; letter-spacing:-.02em; }
-.pz-page .sub { font:600 8pt/1.2 sans-serif; letter-spacing:.12em; text-transform:uppercase; color:#666; border-bottom:2pt solid #111; padding-bottom:2mm; margin-bottom:4mm; }
-.pz { margin:0 0 5mm; padding-bottom:4mm; border-bottom:1px solid #ddd; break-inside:avoid; }
+.pz-page {
+  width:210mm; min-height:297mm; margin:6mm auto; background:#fbfaf6;
+  padding:7mm 8mm 8mm; page-break-after:always; box-shadow:0 12px 32px rgba(0,0,0,.12);
+  display:flex; flex-direction:column;
+}
+.pz-page h1.game-mast, .pz-page h1.games-mast {
+  font:700 15pt Georgia,serif; margin:0 0 1.5mm; letter-spacing:-.02em;
+}
+.pz-page .sub {
+  font:600 7.5pt/1.2 sans-serif; letter-spacing:.12em; text-transform:uppercase; color:#666;
+  border-bottom:2pt solid #111; padding-bottom:1.5mm; margin-bottom:3mm;
+}
+.pz-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:3mm 3.5mm; align-content:start; flex:1 1 auto;
+}
+.pz-grid .pz-wide { grid-column:1 / -1; }
+.pz {
+  margin:0; padding:2.2mm 2.4mm; border:0.55pt solid #d5d1c7; background:#fff; break-inside:avoid;
+}
 .pz-head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
-.pz h2 { font:700 13pt Georgia,serif; margin:0; }
-.pz h3 { font:700 10pt Georgia,serif; margin:3mm 0 1.5mm; }
-.diff { font:700 8pt/1 sans-serif; letter-spacing:.1em; text-transform:uppercase; color:#0071e3; }
-.hint { font: italic 9pt/1.35 Georgia,serif; color:#555; margin:1.5mm 0 3mm; }
-table.sudoku, table.cross, table.wsearch { border-collapse:collapse; margin:0 auto 2mm; }
-table.sudoku td { width:7.2mm; height:7.2mm; border:0.4pt solid #999; text-align:center; font:700 10pt/1 Georgia,serif; }
-table.sudoku td.l { border-left:1.6pt solid #111; }
-table.sudoku td.t { border-top:1.6pt solid #111; }
-table.sudoku td.r { border-right:1.6pt solid #111; }
-table.sudoku td.b { border-bottom:1.6pt solid #111; }
-table.cross td { width:5.2mm; height:5.2mm; border:0.35pt solid #333; vertical-align:top; font:7pt/1 sans-serif; }
+.pz h2 { font:700 11pt Georgia,serif; margin:0; }
+.pz h3 { font:700 9pt Georgia,serif; margin:2mm 0 1mm; }
+.diff { font:700 7pt/1 sans-serif; letter-spacing:.1em; text-transform:uppercase; color:#0071e3; }
+.hint { font: italic 8pt/1.3 Georgia,serif; color:#555; margin:1mm 0 2mm; }
+table.sudoku, table.cross, table.wsearch { border-collapse:collapse; margin:0 auto 1.2mm; }
+table.sudoku td { width:6mm; height:6mm; border:0.35pt solid #999; text-align:center; font:700 8.5pt/1 Georgia,serif; }
+table.sudoku td.l { border-left:1.4pt solid #111; }
+table.sudoku td.t { border-top:1.4pt solid #111; }
+table.sudoku td.r { border-right:1.4pt solid #111; }
+table.sudoku td.b { border-bottom:1.4pt solid #111; }
+table.cross td { width:4.2mm; height:4.2mm; border:0.3pt solid #333; vertical-align:top; font:6.5pt/1 sans-serif; }
 table.cross td.blk { background:#222; border-color:#222; }
 table.cross td.open { background:#fff; }
-table.cross sup { font-size:5.5pt; margin-left:0.4mm; }
-.cross-wrap { display:grid; grid-template-columns: 1.1fr 0.9fr; gap:4mm; }
-.clues { font:9pt/1.35 Georgia,serif; }
-.clues div { margin:0 0 1.2mm; }
-table.wsearch td { width:5mm; height:5mm; border:0.3pt solid #ccc; text-align:center; font:700 8pt/1 ui-monospace,monospace; }
-.wordlist { font:9pt/1.4 Georgia,serif; margin:2mm 0 0; }
-.cipher { font:700 11pt/1.6 ui-monospace,monospace; letter-spacing:.08em; word-break:break-word; }
-.tq { margin:0 0 2.5mm; }
-.tq-q { font:700 9.5pt/1.3 Georgia,serif; margin-bottom:0.8mm; }
-.tq ul { margin:0; padding-left:4mm; font:9pt/1.35 Georgia,serif; }
-.solutions { border-top:2pt solid #111; padding-top:3mm; }
+table.cross sup { font-size:5pt; margin-left:0.3mm; }
+.cross-wrap { display:grid; grid-template-columns:1.05fr 0.95fr; gap:3mm; }
+.clues { font:8pt/1.3 Georgia,serif; }
+.clues div { margin:0 0 0.9mm; }
+table.wsearch td { width:4mm; height:4mm; border:0.25pt solid #ccc; text-align:center; font:700 6.5pt/1 ui-monospace,monospace; }
+.wordlist { font:8pt/1.3 Georgia,serif; margin:1.2mm 0 0; }
+.cipher { font:700 9pt/1.4 ui-monospace,monospace; letter-spacing:.06em; word-break:break-word; }
+.tq { margin:0 0 1.6mm; }
+.tq-q { font:700 8.5pt/1.25 Georgia,serif; margin-bottom:0.4mm; }
+.tq ul { margin:0; padding-left:3.5mm; font:8pt/1.25 Georgia,serif; }
+.solutions { border-top:1.6pt solid #111; padding-top:2.5mm; margin-top:auto; }
+.solutions h2 { font:700 11pt Georgia,serif; margin:0 0 2mm; }
+.solutions h3 { font:700 9pt Georgia,serif; margin:1.5mm 0 1mm; }
+.sol-grid { display:grid; grid-template-columns:1fr 1fr; gap:2.5mm 3mm; }
 @media print { .pz-page { box-shadow:none; margin:0; } }
 @media screen and (max-width:820px) {
   .pz-page { width:100%; min-height:auto; margin:0; box-shadow:none; padding:5vw; }
-  .cross-wrap { grid-template-columns:1fr; }
+  .pz-grid, .cross-wrap, .sol-grid { grid-template-columns:1fr; }
 }
 """
 
@@ -228,36 +246,59 @@ def render_puzzles_html(
 ) -> str:
     if not puzzles:
         return ""
-    # Pack ~2 puzzles per A4 page, solutions on final page
-    pages_html = []
-    chunk: list[dict[str, Any]] = []
-    page_num = 1
 
-    def flush(items: list[dict[str, Any]], num: int) -> None:
-        body = "".join(render_puzzle_block(p) for p in items)
+    wide = {"crossword"}
+
+    def weight(p: dict[str, Any]) -> int:
+        return 2 if p.get("type") in wide else 1
+
+    # Pack densely: ~4 weight units per A4 games page (no lonely half-empty sheets).
+    pages: list[list[dict[str, Any]]] = []
+    current: list[dict[str, Any]] = []
+    load = 0
+    for puzzle in puzzles:
+        w = weight(puzzle)
+        if current and load + w > 4:
+            pages.append(current)
+            current, load = [], 0
+        current.append(puzzle)
+        load += w
+    if current:
+        pages.append(current)
+
+    pages_html: list[str] = []
+    for items in pages:
+        blocks: list[str] = []
+        for p in items:
+            block = render_puzzle_block(p)
+            if p.get("type") in wide:
+                block = block.replace('class="pz"', 'class="pz pz-wide"', 1).replace(
+                    'class="pz ', 'class="pz pz-wide ', 1
+                )
+            blocks.append(block)
         pages_html.append(
             f'<section class="page pz-page">'
-            f'<div class="sub">Games desk · {html.escape(date_label)} · New today</div>'
+            f'<div class="sub">Games desk · {html.escape(date_label)} · New today · dense A4</div>'
             f'<h1 class="game-mast">{html.escape(paper_title)} Games</h1>'
-            f"{body}</section>"
+            f'<div class="pz-grid">{"".join(blocks)}</div>'
+            f"</section>"
         )
 
-    for puzzle in puzzles:
-        chunk.append(puzzle)
-        if len(chunk) >= 2:
-            flush(chunk, page_num)
-            page_num += 1
-            chunk = []
-    if chunk:
-        flush(chunk, page_num)
-        page_num += 1
-
-    pages_html.append(
-        f'<section class="page pz-page">'
-        f'<div class="sub">Games desk · Solutions · {html.escape(date_label)}</div>'
-        f'<h1 class="game-mast">{html.escape(paper_title)} Games</h1>'
-        f"{render_solutions(puzzles)}</section>"
-    )
+    sol = render_solutions(puzzles)
+    # Always tuck solutions onto the last games page so we never ship a half-blank solutions sheet.
+    if pages_html:
+        pages_html[-1] = pages_html[-1].replace(
+            "</section>",
+            f'<div class="sol-grid">{sol}</div></section>',
+            1,
+        )
+    else:
+        pages_html.append(
+            f'<section class="page pz-page">'
+            f'<div class="sub">Games desk · Solutions · {html.escape(date_label)}</div>'
+            f'<h1 class="game-mast">{html.escape(paper_title)} Games</h1>'
+            f'<div class="sol-grid">{sol}</div></section>'
+        )
 
     style = f"<style id='ait-puzzles'>{PUZZLE_CSS}</style>"
     return style + "".join(pages_html)

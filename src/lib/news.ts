@@ -179,11 +179,14 @@ async function fetchFeed(feed: (typeof FEEDS)[number]): Promise<NewsArticle[]> {
   const parsed = await parser.parseURL(feed.url);
   return (parsed.items ?? []).slice(0, 12).map((item, index) => {
     const title = item.title?.trim() || "Untitled";
-    const summary = (item.contentSnippet || item.content || item.summary || "")
+    const raw = (item.contentSnippet || item.content || item.summary || "")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 320);
+      .trim();
+    const summary =
+      raw.length <= 720
+        ? raw
+        : raw.slice(0, 720).replace(/\s+\S*$/, "") + "…";
     const publishedAt = item.isoDate || item.pubDate || new Date().toISOString();
     return {
       id: `${feed.category}-${index}-${Buffer.from(title).toString("base64url").slice(0, 12)}`,
@@ -234,26 +237,39 @@ export async function gatherArticles(
 }
 
 function paginate(articles: NewsArticle[], pageCount: "auto" | number): EditionPage[] {
-  const target =
-    pageCount === "auto" ? Math.min(6, Math.max(2, Math.ceil(articles.length / 4))) : Number(pageCount);
-
-  const perPage = Math.max(1, Math.ceil(articles.length / target));
+  // Dense A4: pack ~12 stories per sheet so print pages aren't half blank.
+  const perPage = 12;
+  const autoPages = Math.max(1, Math.min(5, Math.ceil(articles.length / perPage)));
+  const target = pageCount === "auto" ? autoPages : Number(pageCount);
+  const chunk = Math.max(8, Math.ceil(articles.length / target));
   const pages: EditionPage[] = [];
 
   for (let i = 0; i < target; i++) {
-    const slice = articles.slice(i * perPage, (i + 1) * perPage);
+    const slice = articles.slice(i * chunk, (i + 1) * chunk);
     if (slice.length === 0) break;
     const [lead, ...rest] = slice;
+    const useBriefs = rest.length > 6;
+    const body = useBriefs ? rest.slice(0, -3) : rest;
+    const briefs = useBriefs ? rest.slice(-3) : [];
     pages.push({
       number: i + 1,
       sections: [
         { layout: "lead", articles: [lead] },
-        ...(rest.length
+        ...(body.length
           ? [
               {
                 heading: i === 0 ? "Also today" : undefined,
                 layout: "column" as const,
-                articles: rest,
+                articles: body,
+              },
+            ]
+          : []),
+        ...(briefs.length
+          ? [
+              {
+                heading: "In brief",
+                layout: "brief" as const,
+                articles: briefs,
               },
             ]
           : []),
@@ -279,7 +295,10 @@ export async function buildEdition(
   >,
 ): Promise<NewspaperEdition> {
   const articles = await gatherArticles(profile.interests, profile.company, profile.newsPrompt);
-  const limited = articles.slice(0, profile.pageCount === "auto" ? 18 : Number(profile.pageCount) * 4);
+  const limited = articles.slice(
+    0,
+    profile.pageCount === "auto" ? 36 : Math.max(12, Number(profile.pageCount) * 12),
+  );
   const now = new Date();
   const paperTitle =
     profile.kind === "company" && profile.company?.companyName

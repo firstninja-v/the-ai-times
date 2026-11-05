@@ -135,6 +135,169 @@
       0 30px 80px -40px rgba(0, 0, 0, 0.35);
   }
 
+  /* Dense A4 newspaper (React /edition) — fill the sheet, no half-blank pages */
+  .edition-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .edition-page {
+    width: 100%;
+    min-height: 297mm;
+    padding: 7mm 8mm 8mm;
+    display: flex;
+    flex-direction: column;
+    gap: 3mm;
+    color: hsl(var(--ink));
+  }
+
+  .edition-mast {
+    text-align: center;
+    border-bottom: 2px solid hsl(var(--ink));
+    padding-bottom: 2mm;
+  }
+
+  .edition-vol {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: hsl(var(--masthead));
+  }
+
+  .edition-mast h1 {
+    font-family: var(--font-display), Georgia, serif;
+    font-size: clamp(1.7rem, 4vw, 2.35rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin: 2mm 0 2mm;
+  }
+
+  .edition-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+    border-top: 1px solid hsl(var(--rule));
+    padding-top: 1.5mm;
+  }
+
+  .edition-lead {
+    border-bottom: 1px solid hsl(var(--rule));
+    padding-bottom: 2.5mm;
+  }
+
+  .edition-lead h2 {
+    font-family: var(--font-display), Georgia, serif;
+    font-size: clamp(1.15rem, 2.6vw, 1.55rem);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    margin: 1mm 0;
+  }
+
+  .edition-kicker {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: hsl(var(--masthead));
+    margin: 0;
+  }
+
+  .edition-body {
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: hsl(var(--ink) / 0.88);
+    margin: 1.5mm 0 0;
+  }
+
+  .edition-body-lead {
+    font-size: 14px;
+    line-height: 1.38;
+  }
+
+  .edition-source {
+    font-size: 10px;
+    color: hsl(var(--muted-foreground));
+    margin: 1mm 0 0;
+  }
+
+  .edition-pack {
+    column-count: 3;
+    column-gap: 4mm;
+    column-rule: 0.5px solid hsl(var(--rule));
+    column-fill: balance;
+    flex: 1;
+  }
+
+  .edition-card {
+    break-inside: avoid;
+    display: inline-block;
+    width: 100%;
+    margin: 0 0 3mm;
+    padding-top: 2mm;
+    border-top: 0.5px solid hsl(var(--rule));
+  }
+
+  .edition-card h3 {
+    font-family: var(--font-display), Georgia, serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.18;
+    letter-spacing: -0.015em;
+    margin: 1mm 0;
+  }
+
+  .edition-card a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .edition-card a:hover {
+    text-decoration: underline;
+  }
+
+  .edition-rail {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.5mm 3mm;
+    margin-top: auto;
+    border-top: 1.5px solid hsl(var(--ink));
+    padding-top: 2.5mm;
+  }
+
+  .edition-card-compact .edition-body {
+    font-size: 11px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .edition-card-compact h3 {
+    font-size: 12px;
+  }
+
+  @media (max-width: 720px) {
+    .edition-pack {
+      column-count: 1;
+    }
+    .edition-rail {
+      grid-template-columns: 1fr;
+    }
+    .edition-page {
+      min-height: auto;
+    }
+  }
+
   .ink-rule {
     height: 1px;
     background: hsl(var(--rule));
@@ -189,6 +352,11 @@
 }
 
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
   body {
     background: white !important;
   }
@@ -197,13 +365,25 @@
     display: none !important;
   }
 
-  .paper-sheet {
+  .edition-stack {
+    max-width: none !important;
+    gap: 0 !important;
+  }
+
+  .paper-sheet,
+  .edition-page {
     box-shadow: none !important;
     border: none !important;
     break-after: page;
-    width: 100% !important;
+    page-break-after: always;
+    width: 210mm !important;
     max-width: none !important;
+    min-height: 277mm !important;
     margin: 0 !important;
-    padding: 0.45in !important;
+    padding: 0 !important;
+  }
+
+  .edition-pack {
+    column-count: 3 !important;
   }
 }

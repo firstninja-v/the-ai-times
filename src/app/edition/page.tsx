@@ -81,22 +81,42 @@ export default function EditionPage() {
 
   async function queuePrint() {
     if (!profile) return;
-    setStatus("Queuing print job…");
+    setStatus("Building dense A4 paper for print…");
     try {
-      const res = await fetch("/api/print/job", {
+      // Prefer the studio HTML (3-column packed A4) over sparse browser chrome.
+      const gen = await fetch("/api/newspaper/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          template: profile.preferredTemplate || "classic",
+          title: edition?.paperTitle,
+          pages: profile.pageCount === "auto" ? 3 : Number(profile.pageCount) || 3,
+          font: profile.preferredFont || "georgia",
+          colorMode: profile.colorMode,
+          newsPrompt: profile.newsPrompt,
+          contentVolume: profile.contentVolume || "more",
+          puzzles: profile.puzzles,
+          puzzleDifficulty: profile.puzzleDifficulty || "medium",
+          byok: profile.byok,
+        }),
+      });
+      const genData = await gen.json().catch(() => ({}));
+
+      await fetch("/api/print/job", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),
       });
-      const data = await res.json();
-      if (res.ok) {
-        setStatus(`Print job queued (${data.pages} pages). Run npm run print-agent.`);
-        window.setTimeout(() => window.print(), 150);
-      } else {
-        setStatus(data.error || "Print queue failed");
-      }
+
+      const url = (genData?.openUrl ||
+        genData?.result?.latestUrl ||
+        genData?.result?.publicUrl ||
+        "/editions/latest.html") as string;
+      setStatus("Opening packed A4 edition — use Print / Save as PDF.");
+      window.open(url, "_blank", "noopener,noreferrer");
     } catch {
-      setStatus("Print request failed. Is the server running?");
+      setStatus("Print failed — falling back to on-page print.");
+      window.print();
     }
   }
 
