@@ -14,6 +14,9 @@ export function SiteHeader({
             The AI Times
           </Link>
           <nav className="hidden items-center gap-1 sm:flex">
+            <Link href="/agent" className="btn-ghost !h-9 !px-3 !text-[12px]">
+              Daily agent
+            </Link>
             <Link href="/studio" className="btn-ghost !h-9 !px-3 !text-[12px]">
               Studio
             </Link>

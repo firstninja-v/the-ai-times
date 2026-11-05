@@ -58,7 +58,18 @@ npm run agent:paper:previews
 
 Editions land in `.ai-times/editions/` and `public/editions/`. Copy `agents/.env.example` for LLM + SMTP.
 
-### Always-on agents (keep running)
+### Daily agent (every morning)
+
+Open [/agent](http://127.0.0.1:43123/agent):
+
+1. Set **email time** + **print time** + recipient
+2. Optional: free Gmail SMTP App Password
+3. Click **Turn on every day** — starts morning + news + print agents
+4. Optional: **Run once now** to prove the loop
+
+You do **not** need to keep the website tab open. Keep the machine (or server) running.
+
+Or from a terminal:
 
 ```bash
 # Terminal A — continuous Scrapling + wire collection
@@ -109,15 +120,11 @@ export AI_TIMES_PRINT_POLL=30
 export IPP_PRINTERS="lobby|ipp://192.168.1.50/ipp/print"
 ```
 
-### Settings — agents, printers, email, share
+### Settings — printers, email, share
 
-Open [/settings](http://127.0.0.1:43123/settings):
+Open [/settings](http://127.0.0.1:43123/settings) for printer discovery, SMTP, and WhatsApp/Slack sharing.
 
-1. **Create agent** — schedule morning generate → email → print
-2. **Connect printer** — discover CUPS/IPP or use PDF fallback + browser Print
-3. **Email** — free Gmail App Password / any SMTP (also writable via Settings → saves `agents/.env`)
-4. **Share** — WhatsApp link, Slack incoming webhook, mailto draft, or copy edition URL
-5. **Run once now** — smoke-test the full delivery loop immediately
+For the everyday morning loop, use [/agent](http://127.0.0.1:43123/agent) (schedule + **Turn on every day**).
 
 Images prefer original wire photos; when a feed has no image (or reuses the same asset), the desk draws a **unique** editorial placeholder — never repeating stock pets.
 

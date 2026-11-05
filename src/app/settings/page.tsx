@@ -333,9 +333,15 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-          Create a delivery agent, connect a printer, add free email (Gmail SMTP), and share today’s
-          paper to WhatsApp, Slack, or anywhere with a link.
+          Connect printer, email, and share. To run the paper every morning, use the Daily agent
+          setup — schedule times and turn it on in one place.
         </p>
+        <Link
+          href="/agent"
+          className="mt-5 inline-flex h-11 items-center rounded-full bg-[hsl(var(--ink))] px-5 text-[13px] font-medium text-white"
+        >
+          Open daily agent setup
+        </Link>
         {status ? (
           <p className="mt-4 rounded-2xl border border-black/[0.06] bg-white/80 px-4 py-3 text-[13px] text-[hsl(var(--apple-blue))]">
             {status}

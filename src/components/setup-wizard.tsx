@@ -190,17 +190,18 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed");
-      setStatus("Paper ready — opening your edition.");
+      setStatus("Paper ready. Next: turn on the daily agent.");
       const openUrl = data.openUrl || "/editions/latest.html";
-      window.location.assign(openUrl);
+      window.open(openUrl, "_blank", "noopener,noreferrer");
+      router.push("/agent");
     } catch (err) {
       setStatus(null);
       setError(
         err instanceof Error
-          ? `${err.message} Profile saved — open Templates studio to retry.`
+          ? `${err.message} Profile saved — open Daily agent or Studio to continue.`
           : "Generation failed. Profile saved.",
       );
-      router.push("/studio");
+      router.push("/agent");
     } finally {
       setBusy(false);
     }

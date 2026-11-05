@@ -8,8 +8,8 @@ export default function HomePage() {
       <SiteHeader
         right={
           <div className="flex items-center gap-2">
-            <Link href="/settings" className="btn-ghost hidden sm:inline-flex">
-              Settings
+            <Link href="/agent" className="btn-ghost hidden sm:inline-flex">
+              Daily agent
             </Link>
             <Link href="/setup" className="btn-secondary !h-10 !px-4 !text-[13px]">
               Start free
@@ -52,8 +52,8 @@ export default function HomePage() {
               <Link href="/setup" className="btn-primary min-w-[170px]">
                 Compose your paper
               </Link>
-              <Link href="/company" className="btn-secondary min-w-[170px]">
-                Company paper
+              <Link href="/agent" className="btn-secondary min-w-[170px]">
+                Daily agent
               </Link>
               <Link href="/studio" className="btn-secondary min-w-[170px]">
                 Design studio
