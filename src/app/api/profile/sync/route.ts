@@ -31,6 +31,9 @@ const schema = z.object({
   preferredFont: z
     .enum(["georgia", "newsreader", "libre", "helvetica", "system"])
     .optional(),
+  preferredTemplate: z
+    .enum(["classic", "modern", "compact", "broadsheet", "magazine"])
+    .optional(),
   emailTime: z.string(),
   printEnabled: z.boolean(),
   printTime: z.string(),

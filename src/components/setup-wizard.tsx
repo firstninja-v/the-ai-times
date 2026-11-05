@@ -7,8 +7,9 @@ import { LLM_PROVIDERS, type LlmProviderId } from "@/lib/llm-providers";
 import { TITLE_OPTIONS } from "@/lib/paper-titles";
 import { saveProfile } from "@/lib/storage";
 import type { ColorMode, PaperKind, PaperTitleStyle, UserProfile } from "@/lib/types";
+import { TemplateGallery } from "@/components/template-gallery";
 
-const STEPS = ["Identity", "Interests", "Delivery"] as const;
+const STEPS = ["Identity", "Interests", "Delivery", "Templates"] as const;
 
 export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperKind }) {
   const router = useRouter();
@@ -35,12 +36,17 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
   const [preferredFont, setPreferredFont] = useState<
     "georgia" | "newsreader" | "libre" | "helvetica" | "system"
   >("georgia");
+  const [preferredTemplate, setPreferredTemplate] = useState<
+    "classic" | "modern" | "compact" | "broadsheet" | "magazine"
+  >("classic");
   const [emailTime, setEmailTime] = useState("06:00");
   const [printEnabled, setPrintEnabled] = useState(true);
   const [printTime, setPrintTime] = useState("06:05");
   const [breakingNews, setBreakingNews] = useState(true);
   const [pageCount, setPageCount] = useState<"auto" | number>(4);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
 
   const displayName = kind === "company" ? companyName || name : name;
   const selectedProvider = LLM_PROVIDERS.find((p) => p.id === provider)!;
@@ -65,35 +71,42 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
     setInterests((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
-  function finish() {
+  function validateThrough(stepIndex: number): boolean {
     setError(null);
-    if (!name.trim() || !email.trim()) {
-      setError("Name and email are required.");
-      setStep(0);
-      return;
+    if (stepIndex >= 0) {
+      if (!name.trim() || !email.trim()) {
+        setError("Name and email are required.");
+        setStep(0);
+        return false;
+      }
+      if (!email.includes("@")) {
+        setError("Enter a valid email address.");
+        setStep(0);
+        return false;
+      }
+      if (kind === "company" && !companyName.trim()) {
+        setError("Company name is required for a company paper.");
+        setStep(0);
+        return false;
+      }
     }
-    if (!email.includes("@")) {
-      setError("Enter a valid email address.");
-      setStep(0);
-      return;
+    if (stepIndex >= 1) {
+      if (interests.length === 0 && !newsPrompt.trim()) {
+        setError("Pick interests or write a news prompt.");
+        setStep(1);
+        return false;
+      }
+      if (byokEnabled && !apiKey.trim() && provider !== "ollama") {
+        setError("Paste your API key or turn off Bring Your Own Key.");
+        setStep(1);
+        return false;
+      }
     }
-    if (kind === "company" && !companyName.trim()) {
-      setError("Company name is required for a company paper.");
-      setStep(0);
-      return;
-    }
-    if (interests.length === 0 && !newsPrompt.trim()) {
-      setError("Pick interests or write a news prompt.");
-      setStep(1);
-      return;
-    }
-    if (byokEnabled && !apiKey.trim() && provider !== "ollama") {
-      setError("Paste your API key or turn off Bring Your Own Key.");
-      setStep(1);
-      return;
-    }
+    return true;
+  }
 
-    const profile: UserProfile = {
+  function buildProfile(): UserProfile {
+    return {
       kind,
       name: name.trim(),
       email: email.trim(),
@@ -104,12 +117,13 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
       byok: {
         enabled: byokEnabled,
         provider,
-        apiKey: apiKey.trim(),
+        apiKey: apiKey.trim() || (provider === "ollama" ? "ollama" : ""),
         baseUrl: baseUrl.trim() || selectedProvider.baseUrl,
         model: model.trim() || selectedProvider.defaultModel,
       },
       colorMode,
       preferredFont,
+      preferredTemplate,
       emailTime,
       printEnabled,
       printTime,
@@ -134,9 +148,54 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
           }
         : {}),
     };
+  }
 
+  async function finish() {
+    if (!validateThrough(3)) return;
+    setBusy(true);
+    setStatus("Saving profile and generating your selected template…");
+    const profile = buildProfile();
     saveProfile(profile);
-    router.push("/studio");
+
+    try {
+      const pages = typeof pageCount === "number" ? pageCount : 4;
+      const res = await fetch("/api/newspaper/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          template: preferredTemplate,
+          title: previewTitle,
+          email: profile.email,
+          useLlm: Boolean(profile.byok?.enabled && profile.byok.apiKey),
+          pages,
+          font: preferredFont,
+          colorMode,
+          newsPrompt: newsPrompt || undefined,
+          company: profile.company?.companyName,
+          byok: profile.byok?.enabled ? profile.byok : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Generation failed");
+      setStatus("Paper ready — opening your edition.");
+      const openUrl = data.openUrl || "/editions/latest.html";
+      window.location.assign(openUrl);
+    } catch (err) {
+      setStatus(null);
+      setError(
+        err instanceof Error
+          ? `${err.message} Profile saved — open Templates studio to retry.`
+          : "Generation failed. Profile saved.",
+      );
+      router.push("/studio");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function goNext() {
+    if (!validateThrough(step)) return;
+    setStep((s) => Math.min(STEPS.length - 1, s + 1));
   }
 
   return (
@@ -146,7 +205,10 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
           <button
             key={label}
             type="button"
-            onClick={() => setStep(index)}
+            onClick={() => {
+              if (index > step && !validateThrough(step)) return;
+              setStep(index);
+            }}
             className={`rounded-full px-4 py-2 text-[13px] font-medium transition ${
               index === step
                 ? "bg-[hsl(var(--ink))] text-white"
@@ -165,7 +227,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
               {kind === "company" ? "Company paper" : "Name your paper"}
             </h1>
             <p className="mt-3 max-w-md text-[16px] text-[hsl(var(--muted-foreground))]">
-              Masthead first. Interests and your BYOK model come next.
+              Masthead first. Interests, delivery, then pick a visual template.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -193,6 +255,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
+                autoComplete="name"
                 className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
               />
             </label>
@@ -442,15 +505,6 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
                 <p className="text-[12px] text-[hsl(var(--muted-foreground))]">{selectedProvider.hint}</p>
               </div>
             </div>
-
-            <div className="rounded-[22px] border border-black/[0.06] bg-white/80 p-5 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-              <div className="font-medium text-[hsl(var(--ink))]">How this step works</div>
-              <ol className="mt-2 list-decimal space-y-1.5 pl-4">
-                <li>Your prompt steers ranking and LLM editing.</li>
-                <li>Topic chips narrow the premium wire sources.</li>
-                <li>BYOK is optional — offline desk editor still works.</li>
-              </ol>
-            </div>
           </aside>
         </div>
       )}
@@ -517,24 +571,41 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
         </div>
       )}
 
+      {step === 3 && (
+        <div className="space-y-4">
+          <TemplateGallery
+            selectedId={preferredTemplate}
+            onSelect={(id) =>
+              setPreferredTemplate(
+                id as "classic" | "modern" | "compact" | "broadsheet" | "magazine",
+              )
+            }
+            title="Pick how your paper looks"
+            subtitle={`Click a template to preview it live. We’ll generate “${previewTitle}” in this style with your pages, font, and color.`}
+            showLivePreview
+          />
+        </div>
+      )}
+
       {error ? <p className="mt-6 text-[14px] font-medium text-[hsl(var(--destructive))]">{error}</p> : null}
+      {status ? <p className="mt-4 text-[14px] font-medium text-[hsl(var(--apple-blue))]">{status}</p> : null}
 
       <div className="mt-12 flex items-center justify-between gap-3">
         <button
           type="button"
-          disabled={step === 0}
+          disabled={step === 0 || busy}
           onClick={() => setStep((s) => Math.max(0, s - 1))}
           className="btn-ghost disabled:opacity-30"
         >
           Back
         </button>
         {step < STEPS.length - 1 ? (
-          <button type="button" onClick={() => setStep((s) => s + 1)} className="btn-primary">
+          <button type="button" onClick={goNext} className="btn-primary" disabled={busy}>
             Continue
           </button>
         ) : (
-          <button type="button" onClick={finish} className="btn-primary">
-            Open today&apos;s edition
+          <button type="button" onClick={() => void finish()} className="btn-primary" disabled={busy}>
+            {busy ? "Generating…" : `Generate ${preferredTemplate} paper`}
           </button>
         )}
       </div>

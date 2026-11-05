@@ -5,53 +5,8 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { LLM_PROVIDERS, type LlmProviderId } from "@/lib/llm-providers";
 import { loadProfile, saveProfile } from "@/lib/storage";
+import { FALLBACK_TEMPLATES, type TemplateCard } from "@/lib/templates";
 import type { ByokConfig, ColorMode, UserProfile } from "@/lib/types";
-
-type TemplateCard = {
-  id: string;
-  name: string;
-  description: string;
-  previewImage?: string | null;
-  previewHtml?: string | null;
-};
-
-const FALLBACK: TemplateCard[] = [
-  {
-    id: "classic",
-    name: "Classic Broadsheet",
-    description: "Traditional ink masthead, multi-column body, serif readability.",
-    previewImage: "/templates/classic/preview.png",
-    previewHtml: "/templates/classic/preview.html",
-  },
-  {
-    id: "modern",
-    name: "Modern Daily",
-    description: "Clean Apple-like spacing, large lead image, soft rules.",
-    previewImage: "/templates/modern/preview.png",
-    previewHtml: "/templates/modern/preview.html",
-  },
-  {
-    id: "compact",
-    name: "Compact Brief",
-    description: "Dense but readable morning brief for quick scanning.",
-    previewImage: "/templates/compact/preview.png",
-    previewHtml: "/templates/compact/preview.html",
-  },
-  {
-    id: "broadsheet",
-    name: "Sunday Broadsheet",
-    description: "Wide editorial layout with feature photography.",
-    previewImage: "/templates/broadsheet/preview.png",
-    previewHtml: "/templates/broadsheet/preview.html",
-  },
-  {
-    id: "magazine",
-    name: "Magazine Fold",
-    description: "Magazine-inspired feature spread with bold imagery.",
-    previewImage: "/templates/magazine/preview.png",
-    previewHtml: "/templates/magazine/preview.html",
-  },
-];
 
 const FONTS = [
   { id: "georgia", label: "Georgia" },
@@ -62,7 +17,7 @@ const FONTS = [
 ] as const;
 
 export default function StudioPage() {
-  const [templates, setTemplates] = useState<TemplateCard[]>(FALLBACK);
+  const [templates, setTemplates] = useState<TemplateCard[]>(FALLBACK_TEMPLATES);
   const [template, setTemplate] = useState("classic");
   const [title, setTitle] = useState("The AI Times");
   const [email, setEmail] = useState("");
@@ -104,6 +59,7 @@ export default function StudioPage() {
       if (typeof profile.pageCount === "number") setPages(profile.pageCount);
       setColorMode(profile.colorMode || "bw");
       if (profile.preferredFont) setFont(profile.preferredFont);
+      if (profile.preferredTemplate) setTemplate(profile.preferredTemplate);
       if (profile.byok) {
         setByokEnabled(profile.byok.enabled);
         setProvider(profile.byok.provider);
@@ -159,6 +115,7 @@ export default function StudioPage() {
         byok,
         colorMode,
         preferredFont: font,
+        preferredTemplate: template as UserProfile["preferredTemplate"],
         emailTime: "06:00",
         printEnabled: true,
         printTime: "06:05",
@@ -176,6 +133,7 @@ export default function StudioPage() {
       newsPrompt,
       colorMode,
       preferredFont: font,
+      preferredTemplate: template as UserProfile["preferredTemplate"],
       pageCount: pages,
       byok,
     });

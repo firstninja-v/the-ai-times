@@ -68,6 +68,7 @@ export interface UserProfile {
   byok?: ByokConfig;
   colorMode: ColorMode;
   preferredFont?: "georgia" | "newsreader" | "libre" | "helvetica" | "system";
+  preferredTemplate?: "classic" | "modern" | "compact" | "broadsheet" | "magazine";
   emailTime: string;
   printEnabled: boolean;
   printTime: string;

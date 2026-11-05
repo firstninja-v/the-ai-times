@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HomeTemplates } from "@/components/home-templates";
 import { SiteHeader } from "@/components/site-header";
 
 export default function HomePage() {
@@ -7,7 +8,7 @@ export default function HomePage() {
       <SiteHeader
         right={
           <div className="flex items-center gap-2">
-            <Link href="/studio" className="btn-ghost hidden sm:inline-flex">
+            <Link href="/#templates" className="btn-ghost hidden sm:inline-flex">
               Templates
             </Link>
             <Link href="/setup" className="btn-secondary !h-10 !px-4 !text-[13px]">
@@ -120,6 +121,10 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <div id="templates">
+        <HomeTemplates />
+      </div>
     </main>
   );
 }
