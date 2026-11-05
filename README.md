@@ -21,6 +21,29 @@ npm run dev
 
 Open [http://127.0.0.1:43123](http://127.0.0.1:43123).
 
+### Designed newspaper PDFs/HTML (Python studio)
+
+Ready-made templates: `classic`, `modern`, `compact`, `broadsheet`, `magazine`.
+
+```bash
+# list templates
+npm run agent:paper -- --list-templates
+
+# generate today (offline desk editor if no key)
+npm run agent:paper -- --template modern --pages 4
+
+# use any small OpenAI-compatible model
+export LLM_API_KEY=sk-...
+export LLM_BASE_URL=https://api.openai.com/v1   # or Groq / Together / Ollama
+export LLM_MODEL=gpt-4o-mini
+npm run agent:paper -- --template classic --email you@example.com
+
+# render every template
+npm run agent:paper -- --all-templates --no-llm
+```
+
+Editions land in `.ai-times/editions/`. Copy `agents/.env.example` for LLM + SMTP.
+
 ### Always-on agents (keep running)
 
 ```bash
@@ -29,6 +52,9 @@ npm run agent:news
 
 # Terminal B — continuous printer discovery + scheduled auto-print
 npm run agent:print
+
+# Terminal C — optional daily designed paper (cron this)
+npm run agent:paper:daily
 ```
 
 Optional env:

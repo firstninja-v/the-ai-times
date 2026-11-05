@@ -11,6 +11,8 @@
     "print-agent": "node scripts/print-agent.mjs",
     "agent:news": "python3 agents/news_agent.py",
     "agent:print": "python3 agents/print_daemon.py",
+    "agent:paper": "python3 -m agents.newspaper",
+    "agent:paper:daily": "python3 -m agents.newspaper.daily",
     "agents:install": "pip3 install -r agents/requirements.txt"
   },
   "dependencies": {

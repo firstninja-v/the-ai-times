@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ paper_title }} — {{ date_label }}</title>
+  <style>
+    body { margin:0; background:#111; color:#f4f4f4; font:15px/1.55 "Gill Sans", "Trebuchet MS", sans-serif; }
+    .page { width:min(980px,100%); margin:0 auto 24px; background:#161616; }
+    .cover { position:relative; }
+    .cover img { width:100%; aspect-ratio:3/4; max-height:820px; object-fit:cover; display:block; opacity:.92; }
+    .cover .overlay { position:absolute; inset:auto 0 0 0; padding:36px; background:linear-gradient(transparent, rgba(0,0,0,.85)); }
+    .cover .brand { letter-spacing:.24em; text-transform:uppercase; font-size:12px; color:#ffb703; }
+    .cover h1 { font-family: Georgia, serif; font-size:clamp(2.8rem,8vw,5rem); line-height:.95; margin:10px 0; }
+    .cover h2 { font-family:Georgia,serif; font-size:clamp(1.5rem,3vw,2.2rem); margin:0; max-width:18ch; }
+    .inner { padding:28px; }
+    .note { color:#bdbdbd; margin-bottom:22px; }
+    .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:16px; }
+    .span-7 { grid-column: span 7; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+    .span-6 { grid-column: span 6; }
+    .card { background:#1f1f1f; border-radius:4px; overflow:hidden; }
+    .card img { width:100%; aspect-ratio:16/11; object-fit:cover; display:block; }
+    .card .p { padding:14px; }
+    .card h3 { font-family:Georgia,serif; font-size:1.35rem; margin:6px 0 8px; }
+    .tag { color:#ffb703; font-size:11px; letter-spacing:.14em; text-transform:uppercase; }
+    @media (max-width:800px){ .span-7,.span-5,.span-4,.span-6{grid-column:span 12;} }
+    @media print { body,.page{background:#fff;color:#111;} .card{background:#fff; border:1px solid #ddd;} }
+  </style>
+</head>
+<body>
+  {% for page in pages %}
+  <section class="page">
+    {% if page.number == 1 and page.lead %}
+    <div class="cover">
+      <img src="{{ page.lead.image_src }}" alt="" />
+      <div class="overlay">
+        <div class="brand">{{ paper_title }} · {{ date_label }}</div>
+        <h1>{{ page.lead.title }}</h1>
+        <h2>{{ page.lead.dek }}</h2>
+      </div>
+    </div>
+    <div class="inner">
+      <p class="note">{{ editor_note }}</p>
+      <div class="grid">
+        {% for article in page.magazine_items %}
+        <article class="card {{ loop.cycle('span-7','span-5','span-4','span-4','span-4','span-6','span-6') }}">
+          <img src="{{ article.image_src }}" alt="" />
+          <div class="p">
+            <div class="tag">{{ article.section }}</div>
+            <h3>{{ article.title }}</h3>
+            <p>{{ article.summary }}</p>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="inner">
+      <div class="brand" style="color:#ffb703;letter-spacing:.2em;text-transform:uppercase;font-size:12px;">{{ paper_title }} · Page {{ page.number }}</div>
+      <div class="grid" style="margin-top:18px;">
+        {% for section_name, items in page.groups.items() %}
+          {% for article in items %}
+          <article class="card span-6">
+            <img src="{{ article.image_src }}" alt="" />
+            <div class="p">
+              <div class="tag">{{ section_name }}</div>
+              <h3>{{ article.title }}</h3>
+              <p>{{ article.summary }}</p>
+            </div>
+          </article>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+</body>
+</html>

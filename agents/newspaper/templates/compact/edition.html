@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ paper_title }} — {{ date_label }}</title>
+  <style>
+    body { margin:0; background:#f2f2f2; color:#111; font:14px/1.45 "IBM Plex Sans", Helvetica, Arial, sans-serif; }
+    .page { width:min(800px,100%); margin:16px auto; background:#fff; padding:22px 24px 30px; }
+    header { display:flex; justify-content:space-between; align-items:baseline; border-bottom:2px solid #111; padding-bottom:8px; margin-bottom:14px; }
+    h1 { font: 700 28px/1 Georgia, serif; margin:0; }
+    .sub { color:#666; font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+    .lead { display:grid; grid-template-columns: 140px 1fr; gap:14px; padding-bottom:14px; margin-bottom:14px; border-bottom:1px solid #ddd; }
+    .lead img { width:140px; height:100px; object-fit:cover; }
+    .lead h2 { font:700 22px/1.15 Georgia,serif; margin:0 0 6px; }
+    .item { display:grid; grid-template-columns: 96px 1fr; gap:12px; padding:10px 0; border-bottom:1px solid #eee; }
+    .item img { width:96px; height:72px; object-fit:cover; }
+    .item h3 { font:700 16px/1.2 Georgia,serif; margin:0 0 4px; }
+    .meta { color:#777; font-size:11px; margin-bottom:4px; }
+    @media print { body{background:#fff;} .page{margin:0;width:100%;} }
+  </style>
+</head>
+<body>
+  {% for page in pages %}
+  <section class="page">
+    <header>
+      <div>
+        <div class="sub">{{ kicker }}</div>
+        <h1>{{ paper_title }}</h1>
+      </div>
+      <div class="sub">{{ date_label }} · p.{{ page.number }}</div>
+    </header>
+    {% if page.number == 1 and page.lead %}
+    <article class="lead">
+      <img src="{{ page.lead.image_src }}" alt="" />
+      <div>
+        <div class="meta">{{ page.lead.section }} · {{ page.lead.byline }}</div>
+        <h2>{{ page.lead.title }}</h2>
+        <p>{{ page.lead.summary }}</p>
+      </div>
+    </article>
+    {% endif %}
+    {% for section_name, items in page.groups.items() %}
+      <div class="sub" style="margin:12px 0 4px;">{{ section_name }}</div>
+      {% for article in items %}
+      <article class="item">
+        <img src="{{ article.image_src }}" alt="" />
+        <div>
+          <div class="meta">{{ article.section }} · {{ article.byline }}</div>
+          <h3>{{ article.title }}</h3>
+          <p>{{ article.summary }}</p>
+        </div>
+      </article>
+      {% endfor %}
+    {% endfor %}
+  </section>
+  {% endfor %}
+</body>
+</html>

@@ -36,8 +36,8 @@ export default function HomePage() {
             <Link href="/company" className="btn-secondary min-w-[180px]">
               Company paper
             </Link>
-            <Link href="/edition" className="btn-secondary min-w-[180px]">
-              Today&apos;s edition
+            <Link href="/studio" className="btn-secondary min-w-[180px]">
+              Design studio
             </Link>
           </div>
         </div>

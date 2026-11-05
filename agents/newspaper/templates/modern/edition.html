@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ paper_title }} — {{ date_label }}</title>
+  <style>
+    :root { --ink:#1d1d1f; --muted:#6e6e73; --blue:#0071e3; --paper:#fbfbfd; --line:rgba(0,0,0,.08); }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f5f5f7; color:var(--ink); font: 15px/1.6 "Helvetica Neue", Helvetica, Arial, sans-serif; }
+    .page { width:min(980px,100%); margin:28px auto; background:var(--paper); border-radius:24px; padding:40px; box-shadow:0 24px 60px rgba(0,0,0,.08); }
+    .top { display:flex; justify-content:space-between; align-items:end; gap:16px; margin-bottom:28px; }
+    .brand { font-size:13px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--blue); }
+    h1 { font-family: Georgia, serif; font-size:clamp(2.8rem,6vw,4.5rem); letter-spacing:-.045em; line-height:.95; margin:8px 0 0; }
+    .date { color:var(--muted); font-size:13px; text-align:right; }
+    .hero { position:relative; border-radius:18px; overflow:hidden; margin-bottom:28px; }
+    .hero img { width:100%; aspect-ratio:21/9; object-fit:cover; display:block; }
+    .hero .cap { position:absolute; inset:auto 0 0 0; padding:28px; background:linear-gradient(transparent, rgba(0,0,0,.72)); color:#fff; }
+    .hero h2 { font-family:Georgia,serif; font-size:clamp(1.7rem,3vw,2.4rem); margin:0 0 8px; letter-spacing:-.02em; }
+    .note { color:var(--muted); margin:0 0 24px; }
+    .row { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:18px; overflow:hidden; }
+    .card img { width:100%; aspect-ratio:16/10; object-fit:cover; display:block; }
+    .card .body { padding:18px; }
+    .tag { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); }
+    .card h3 { font-family:Georgia,serif; font-size:1.35rem; line-height:1.2; margin:8px 0; letter-spacing:-.02em; }
+    .by { font-size:12px; color:var(--muted); margin-bottom:8px; }
+    .section { margin:28px 0 12px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
+    @media (max-width:800px){ .row{grid-template-columns:1fr;} .page{border-radius:0; margin:0;} }
+    @media print { body{background:#fff;} .page{box-shadow:none;border-radius:0;} }
+  </style>
+</head>
+<body>
+  {% for page in pages %}
+  <section class="page">
+    <div class="top">
+      <div>
+        <div class="brand">{{ kicker }}</div>
+        <h1>{{ paper_title }}</h1>
+      </div>
+      <div class="date">{{ date_label }}<br/>Page {{ page.number }} / {{ pages|length }} · Modern</div>
+    </div>
+    {% if page.number == 1 and page.lead %}
+      <p class="note">{{ editor_note }}</p>
+      <article class="hero">
+        <img src="{{ page.lead.image_src }}" alt="{{ page.lead.title }}" />
+        <div class="cap">
+          <div class="tag" style="color:#fff;">{{ page.lead.section }}</div>
+          <h2>{{ page.lead.title }}</h2>
+          <div>{{ page.lead.dek }}</div>
+        </div>
+      </article>
+    {% endif %}
+    {% for section_name, items in page.groups.items() %}
+      <div class="section">{{ section_name }}</div>
+      <div class="row">
+        {% for article in items %}
+        <article class="card">
+          <img src="{{ article.image_src }}" alt="{{ article.title }}" />
+          <div class="body">
+            <div class="tag">{{ article.section }}</div>
+            <h3>{{ article.title }}</h3>
+            <div class="by">{{ article.byline }}</div>
+            <p>{{ article.summary }}</p>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</body>
+</html>

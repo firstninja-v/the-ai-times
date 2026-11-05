@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ paper_title }} — {{ date_label }}</title>
+  <style>
+    body { margin:0; background:#d9d4c8; color:#0f0f0f; font: 16px/1.5 "Libre Baskerville", Georgia, serif; }
+    .page { width:min(1100px,100%); margin:20px auto; background:#f7f4ec; padding:28px 34px 40px; }
+    .mast { text-align:center; border-bottom:4px double #111; padding-bottom:10px; margin-bottom:18px; }
+    .mast .k { font:700 11px/1 sans-serif; letter-spacing:.3em; text-transform:uppercase; color:#8b1e1e; }
+    .mast h1 { font-size: clamp(3rem, 8vw, 5rem); margin:6px 0; letter-spacing:-.04em; }
+    .mast .d { font:600 12px/1.3 sans-serif; letter-spacing:.08em; text-transform:uppercase; }
+    .feature { display:grid; grid-template-columns: 1.4fr 1fr 1fr; gap:18px; margin-bottom:22px; }
+    .feature .main img { width:100%; aspect-ratio:4/3; object-fit:cover; }
+    .feature h2 { font-size:2rem; line-height:1.1; margin:10px 0; }
+    .side img { width:100%; aspect-ratio:16/11; object-fit:cover; }
+    .side h3 { font-size:1.2rem; margin:8px 0; }
+    .band { font:700 12px/1 sans-serif; letter-spacing:.2em; text-transform:uppercase; border-top:2px solid #111; border-bottom:1px solid #111; padding:6px 0; margin:18px 0 12px; }
+    .trio { columns:3; gap:18px; }
+    .story { break-inside:avoid; margin-bottom:16px; }
+    .story img { width:100%; aspect-ratio:16/10; object-fit:cover; margin-bottom:8px; }
+    @media (max-width:900px){ .feature,.trio{display:block; columns:1;} }
+    @media print { body{background:#fff;} .page{margin:0;width:100%;} }
+  </style>
+</head>
+<body>
+  {% for page in pages %}
+  <section class="page">
+    <header class="mast">
+      <div class="k">{{ kicker }}</div>
+      <h1>{{ paper_title }}</h1>
+      <div class="d">{{ date_label }} · {{ weather_line }} · Page {{ page.number }}</div>
+    </header>
+    {% if page.number == 1 %}
+      <p style="font-style:italic;color:#444;margin-top:0;">{{ editor_note }}</p>
+      <div class="feature">
+        {% if page.lead %}
+        <article class="main">
+          <img src="{{ page.lead.image_src }}" alt="" />
+          <h2>{{ page.lead.title }}</h2>
+          <p>{{ page.lead.summary }}</p>
+        </article>
+        {% endif %}
+        {% for article in page.side_features %}
+        <article class="side">
+          <img src="{{ article.image_src }}" alt="" />
+          <h3>{{ article.title }}</h3>
+          <p>{{ article.dek or article.summary }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% for section_name, items in page.groups.items() %}
+      <div class="band">{{ section_name }}</div>
+      <div class="trio">
+        {% for article in items %}
+        <article class="story">
+          <img src="{{ article.image_src }}" alt="" />
+          <strong>{{ article.title }}</strong>
+          <div style="font:600 11px/1.2 sans-serif;color:#666;margin:4px 0;">{{ article.byline }}</div>
+          <p>{{ article.summary }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</body>
+</html>
