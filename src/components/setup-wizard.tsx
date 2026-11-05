@@ -230,21 +230,29 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
               Masthead first. Interests, delivery, then pick a visual template.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {(["personal", "company"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setKind(value)}
-                className={`h-12 rounded-2xl border text-[14px] font-semibold capitalize ${
-                  kind === value
-                    ? "border-transparent bg-[hsl(var(--ink))] text-white"
-                    : "border-black/[0.08] bg-white"
-                }`}
-              >
-                {value}
-              </button>
-            ))}
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label="Paper type">
+            <button
+              type="button"
+              onClick={() => setKind("personal")}
+              className={`h-12 rounded-2xl border text-[14px] font-semibold ${
+                kind === "personal"
+                  ? "border-transparent bg-[hsl(var(--ink))] text-white"
+                  : "border-black/[0.08] bg-white"
+              }`}
+            >
+              Personal
+            </button>
+            <button
+              type="button"
+              onClick={() => setKind("company")}
+              className={`h-12 rounded-2xl border text-[14px] font-semibold ${
+                kind === "company"
+                  ? "border-transparent bg-[hsl(var(--ink))] text-white"
+                  : "border-black/[0.08] bg-white"
+              }`}
+            >
+              Company
+            </button>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-2">
