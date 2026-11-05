@@ -8,7 +8,9 @@ export function loadProfile(): UserProfile | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
-    return raw ? (JSON.parse(raw) as UserProfile) : null;
+    if (!raw) return null;
+    const profile = JSON.parse(raw) as UserProfile;
+    return { ...profile, kind: profile.kind || "personal" };
   } catch {
     return null;
   }
@@ -16,6 +18,13 @@ export function loadProfile(): UserProfile | null {
 
 export function saveProfile(profile: UserProfile) {
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  void fetch("/api/profile/sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(profile),
+  }).catch(() => {
+    // offline sync can retry later
+  });
 }
 
 export function clearProfile() {

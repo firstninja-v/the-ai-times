@@ -4,6 +4,7 @@ import { buildEdition } from "@/lib/news";
 import { sendMorningEmail } from "@/lib/email";
 
 const schema = z.object({
+  kind: z.enum(["personal", "company"]).default("personal"),
   email: z.string().email(),
   name: z.string().min(1),
   titleStyle: z.enum([
@@ -18,6 +19,14 @@ const schema = z.object({
   interests: z.array(z.string()).default([]),
   colorMode: z.enum(["bw", "color"]).default("bw"),
   pageCount: z.union([z.literal("auto"), z.number().int().min(1).max(12)]).default("auto"),
+  company: z
+    .object({
+      companyName: z.string(),
+      industry: z.string().optional(),
+      keywords: z.array(z.string()).default([]),
+      competitors: z.array(z.string()).optional(),
+    })
+    .optional(),
 });
 
 export async function POST(request: Request) {

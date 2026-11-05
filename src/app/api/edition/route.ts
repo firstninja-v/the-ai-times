@@ -3,6 +3,7 @@ import { z } from "zod";
 import { buildEdition } from "@/lib/news";
 
 const bodySchema = z.object({
+  kind: z.enum(["personal", "company"]).default("personal"),
   name: z.string().min(1),
   email: z.string().email().optional(),
   titleStyle: z.enum([
@@ -17,6 +18,16 @@ const bodySchema = z.object({
   interests: z.array(z.string()).default([]),
   colorMode: z.enum(["bw", "color"]),
   pageCount: z.union([z.literal("auto"), z.number().int().min(1).max(12)]).default("auto"),
+  company: z
+    .object({
+      companyName: z.string(),
+      industry: z.string().optional(),
+      keywords: z.array(z.string()).default([]),
+      competitors: z.array(z.string()).optional(),
+      pressUrls: z.array(z.string()).optional(),
+      website: z.string().optional(),
+    })
+    .optional(),
 });
 
 export async function POST(request: Request) {

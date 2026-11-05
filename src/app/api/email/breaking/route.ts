@@ -5,6 +5,7 @@ import { sendBreakingEmail } from "@/lib/email";
 import { resolvePaperTitle } from "@/lib/paper-titles";
 
 const schema = z.object({
+  kind: z.enum(["personal", "company"]).default("personal"),
   email: z.string().email(),
   name: z.string().min(1),
   titleStyle: z.enum([
@@ -20,6 +21,14 @@ const schema = z.object({
   colorMode: z.enum(["bw", "color"]).default("bw"),
   pageCount: z.union([z.literal("auto"), z.number().int().min(1).max(12)]).default("auto"),
   alreadySent: z.array(z.string()).default([]),
+  company: z
+    .object({
+      companyName: z.string(),
+      industry: z.string().optional(),
+      keywords: z.array(z.string()).default([]),
+      competitors: z.array(z.string()).optional(),
+    })
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -32,7 +41,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, sent: false, breaking: [] });
     }
 
-    const paperTitle = resolvePaperTitle(input);
+    const paperTitle =
+      input.kind === "company" && input.company?.companyName
+        ? input.customTitle || `The ${input.company.companyName} Times`
+        : resolvePaperTitle(input);
     const result = await sendBreakingEmail(input.email, paperTitle, breaking);
     return NextResponse.json({
       ok: true,

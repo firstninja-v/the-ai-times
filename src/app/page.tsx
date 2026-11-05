@@ -33,8 +33,11 @@ export default function HomePage() {
             <Link href="/setup" className="btn-primary min-w-[180px]">
               Compose your paper
             </Link>
+            <Link href="/company" className="btn-secondary min-w-[180px]">
+              Company paper
+            </Link>
             <Link href="/edition" className="btn-secondary min-w-[180px]">
-              View today&apos;s edition
+              Today&apos;s edition
             </Link>
           </div>
         </div>
@@ -85,16 +88,16 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-[1120px] gap-14 px-6 py-24 sm:px-10 md:grid-cols-3">
           {[
             {
-              title: "Interest-matched",
-              body: "You choose topics. The AI Times ranks signal and drops slop before it reaches the page.",
+              title: "Personal or company",
+              body: "Compose a private masthead for yourself — or a company paper tuned to brand, market, and competitors.",
             },
             {
-              title: "Email + print",
-              body: "Morning email on your clock. Optional local print agent sends the edition to your printer.",
+              title: "Premium wires + Scrapling",
+              body: "BBC, Guardian, TechCrunch, AP/Bloomberg feeds, plus an always-on Scrapling desk that never sleeps.",
             },
             {
-              title: "Breaking, sparingly",
-              body: "Stay quiet through the day—unless something urgent matches your interests.",
+              title: "Hands-free print loop",
+              body: "CUPS, IPP, and PDF printers with saved settings. Auto-print every morning without another click.",
             },
           ].map((item) => (
             <div key={item.title} className="max-w-sm">

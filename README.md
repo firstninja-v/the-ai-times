@@ -1,60 +1,66 @@
 # The AI Times
 
-**Your personal morning newspaper.** Interest-matched. Ad-free. Emailed every morning. Printed at your desk. Interrupted only for breaking news that actually matters.
+**Your personal — or company — morning newspaper.**  
+Interest-matched. Ad-free. Sourced from premium wires. Scraped daily with [Scrapling](https://github.com/D4Vinci/Scrapling). Emailed every morning. Printed on a hands-free loop.
 
-The AI Times turns the open web’s RSS into a multi-page paper named after you — *The Sairam Times*, *Daily News*, *The Herald*, and more — then delivers it on your schedule.
+## What it does
 
-## Why it exists
-
-Most news products optimize for engagement. The AI Times optimizes for **signal**:
-
-- You pick interests; everything else is cut
-- Sponsored / shopping / celebrity-slop patterns are filtered out
-- Morning email + optional local printer agent
-- Breaking alerts only when a story is urgent *and* on-interest
-- Black & white or color editions
+- **Personal papers** — *The Sairam Times*, Daily News, Herald, Post, custom mastheads
+- **Company papers** — brand / market / competitor keywords → a private company newspaper
+- **Premium providers** — BBC, Guardian, TechCrunch, NPR, AP & Bloomberg via Google News RSS, plus Scrapling HTML desks
+- **Always-on news agent** — Scrapling + RSS loop that scores importance and raises breaking alerts
+- **Hands-free print daemon** — discovers CUPS / IPP / PDF printers, stores paper settings, auto-prints at the chosen time without another click
 
 ## Quick start
 
 ```bash
 npm install
+npm run agents:install
 npm run dev
 ```
 
 Open [http://127.0.0.1:43123](http://127.0.0.1:43123).
 
-1. **Compose your paper** — name, masthead style, interests, color, schedule  
-2. **Open today’s edition** — multi-page, print-ready layout  
-3. **Email now / Print** — test delivery from the edition toolbar  
-
-### Real email (optional)
-
-Copy `.env.example` → `.env.local` and set SMTP credentials. Without SMTP, The AI Times logs a mock send to the server console so local demos still work.
-
-### Daily printer
+### Always-on agents (keep running)
 
 ```bash
-npm run print-agent
+# Terminal A — continuous Scrapling + wire collection
+npm run agent:news
+
+# Terminal B — continuous printer discovery + scheduled auto-print
+npm run agent:print
 ```
 
-Keep this running on the machine attached to your printer. When The AI Times queues a morning job (or you click **Print**), the agent:
+Optional env:
 
-1. Writes a print-ready HTML edition under `.ai-times/print-output/`
-2. Sends it to CUPS via `lp` when available
-3. Otherwise leaves the HTML for you to open and print
+```bash
+export AI_TIMES_API=http://127.0.0.1:43123
+export AI_TIMES_AGENT_POLL=90
+export AI_TIMES_PRINT_POLL=30
+# Network printers: name|ipp://host/printers/queue,name2|ipp://...
+export IPP_PRINTERS="lobby|ipp://192.168.1.50/ipp/print"
+```
 
-## Stack
+### Email (optional)
 
-- Next.js (App Router) + TypeScript + Tailwind + shadcn/ui
-- RSS aggregation with interest scoring and slop filters
-- Nodemailer for morning + breaking mail
-- Local print queue + CUPS agent
+Copy `.env.example` → `.env.local` and set SMTP. Without SMTP, sends are mocked to the server log.
 
-Built lean (Ponytail-style): one product slice, no fake microservices, no auth wall for the free local path.
+## Architecture
 
-## Product path
+| Piece | Role |
+|---|---|
+| Next.js app | Setup, company papers, edition UI, ingest + print APIs |
+| `agents/news_agent.py` | Scrapling + premium RSS desk, importance scoring, inbox + breaking ingest |
+| `agents/print_daemon.py` | Printer registry, settings, forever loop, auto print at `printTime` |
+| `.ai-times/` | Local runtime: inbox, profiles, printers, print queue |
 
-This repo is the open core. A hosted free tier can wrap the same edition engine later — profiles, managed SMTP, and always-on breaking checks — without changing the paper itself.
+## Company paper flow
+
+1. Open **/company**
+2. Enter company, industry, keywords, competitors
+3. Save → profile syncs into `.ai-times/profiles/`
+4. News agent boosts matching stories all day
+5. Print daemon fires the edition at the company print time
 
 ## License
 

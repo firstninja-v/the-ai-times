@@ -8,7 +8,10 @@
     "build": "next build",
     "start": "next start --port 43123",
     "lint": "next lint",
-    "print-agent": "node scripts/print-agent.mjs"
+    "print-agent": "node scripts/print-agent.mjs",
+    "agent:news": "python3 agents/news_agent.py",
+    "agent:print": "python3 agents/print_daemon.py",
+    "agents:install": "pip3 install -r agents/requirements.txt"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",

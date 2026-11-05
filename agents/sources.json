@@ -1,0 +1,96 @@
+{
+  "providers": [
+    {
+      "id": "bbc-world",
+      "name": "BBC World",
+      "tier": "premium",
+      "kind": "rss",
+      "category": "world",
+      "url": "https://feeds.bbci.co.uk/news/world/rss.xml"
+    },
+    {
+      "id": "bbc-business",
+      "name": "BBC Business",
+      "tier": "premium",
+      "kind": "rss",
+      "category": "business",
+      "url": "https://feeds.bbci.co.uk/news/business/rss.xml"
+    },
+    {
+      "id": "bbc-tech",
+      "name": "BBC Technology",
+      "tier": "premium",
+      "kind": "rss",
+      "category": "technology",
+      "url": "https://feeds.bbci.co.uk/news/technology/rss.xml"
+    },
+    {
+      "id": "reuters-business",
+      "name": "Reuters Business",
+      "tier": "premium",
+      "kind": "rss",
+      "category": "business",
+      "url": "https://www.reutersagency.com/feed/?taxonomy=best-topics&post_type=best"
+    },
+    {
+      "id": "npr-news",
+      "name": "NPR News",
+      "tier": "premium",
+      "kind": "rss",
+      "category": "world",
+      "url": "https://feeds.npr.org/1001/rss.xml"
+    },
+    {
+      "id": "guardian-world",
+      "name": "The Guardian World",
+      "tier": "premium",
+      "kind": "rss",
+      "category": "world",
+      "url": "https://www.theguardian.com/world/rss"
+    },
+    {
+      "id": "guardian-tech",
+      "name": "The Guardian Technology",
+      "tier": "premium",
+      "kind": "rss",
+      "category": "technology",
+      "url": "https://www.theguardian.com/uk/technology/rss"
+    },
+    {
+      "id": "ap-top",
+      "name": "AP Top News via Google News",
+      "tier": "premium",
+      "kind": "rss",
+      "category": "world",
+      "url": "https://news.google.com/rss/search?q=site:apnews.com&hl=en-US&gl=US&ceid=US:en"
+    },
+    {
+      "id": "bloomberg-markets",
+      "name": "Bloomberg Markets via Google News",
+      "tier": "premium",
+      "kind": "rss",
+      "category": "business",
+      "url": "https://news.google.com/rss/search?q=site:bloomberg.com+markets&hl=en-US&gl=US&ceid=US:en"
+    },
+    {
+      "id": "techcrunch",
+      "name": "TechCrunch",
+      "tier": "specialty",
+      "kind": "rss",
+      "category": "technology",
+      "url": "https://techcrunch.com/feed/"
+    },
+    {
+      "id": "bbc-world-html",
+      "name": "BBC World HTML desk",
+      "tier": "premium",
+      "kind": "scrapling",
+      "category": "world",
+      "url": "https://www.bbc.com/news/world",
+      "selectors": {
+        "item": "a[href*='/news/articles/'], a[href*='/news/world-']",
+        "title": null
+      }
+    }
+  ]
+}

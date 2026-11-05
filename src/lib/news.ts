@@ -1,17 +1,35 @@
 import Parser from "rss-parser";
 import { keywordsForInterests } from "./interests";
-import type { ColorMode, EditionPage, NewsArticle, NewspaperEdition, UserProfile } from "./types";
+import { readInboxArticles } from "./inbox";
+import type {
+  ColorMode,
+  CompanyInfo,
+  EditionPage,
+  NewsArticle,
+  NewspaperEdition,
+  UserProfile,
+} from "./types";
 import { resolvePaperTitle } from "./paper-titles";
 
-const FEEDS: { category: string; url: string }[] = [
-  { category: "world", url: "https://feeds.bbci.co.uk/news/world/rss.xml" },
-  { category: "business", url: "https://feeds.bbci.co.uk/news/business/rss.xml" },
-  { category: "technology", url: "https://feeds.bbci.co.uk/news/technology/rss.xml" },
-  { category: "science", url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml" },
-  { category: "health", url: "https://feeds.bbci.co.uk/news/health/rss.xml" },
-  { category: "politics", url: "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml" },
-  { category: "sports", url: "https://www.espn.com/espn/rss/news" },
-  { category: "culture", url: "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml" },
+const FEEDS: { category: string; url: string; name: string }[] = [
+  { category: "world", name: "BBC World", url: "https://feeds.bbci.co.uk/news/world/rss.xml" },
+  { category: "business", name: "BBC Business", url: "https://feeds.bbci.co.uk/news/business/rss.xml" },
+  { category: "technology", name: "BBC Technology", url: "https://feeds.bbci.co.uk/news/technology/rss.xml" },
+  { category: "science", name: "BBC Science", url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml" },
+  { category: "health", name: "BBC Health", url: "https://feeds.bbci.co.uk/news/health/rss.xml" },
+  { category: "politics", name: "NYT Politics", url: "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml" },
+  { category: "sports", name: "ESPN", url: "https://www.espn.com/espn/rss/news" },
+  { category: "culture", name: "BBC Culture", url: "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml" },
+  {
+    category: "business",
+    name: "Guardian Business",
+    url: "https://www.theguardian.com/uk/business/rss",
+  },
+  {
+    category: "technology",
+    name: "TechCrunch",
+    url: "https://techcrunch.com/feed/",
+  },
 ];
 
 const SLOP = [
@@ -38,6 +56,7 @@ const FALLBACK: NewsArticle[] = [
     url: "#",
     publishedAt: new Date().toISOString(),
     category: "business",
+    score: 4,
   },
   {
     id: "fb-2",
@@ -48,6 +67,7 @@ const FALLBACK: NewsArticle[] = [
     url: "#",
     publishedAt: new Date().toISOString(),
     category: "technology",
+    score: 5,
   },
   {
     id: "fb-3",
@@ -59,6 +79,7 @@ const FALLBACK: NewsArticle[] = [
     publishedAt: new Date().toISOString(),
     category: "climate",
     breaking: true,
+    score: 8,
   },
   {
     id: "fb-4",
@@ -69,6 +90,7 @@ const FALLBACK: NewsArticle[] = [
     url: "#",
     publishedAt: new Date().toISOString(),
     category: "health",
+    score: 3,
   },
   {
     id: "fb-5",
@@ -79,6 +101,7 @@ const FALLBACK: NewsArticle[] = [
     url: "#",
     publishedAt: new Date().toISOString(),
     category: "local",
+    score: 2,
   },
   {
     id: "fb-6",
@@ -89,6 +112,7 @@ const FALLBACK: NewsArticle[] = [
     url: "#",
     publishedAt: new Date().toISOString(),
     category: "science",
+    score: 4,
   },
 ];
 
@@ -97,23 +121,47 @@ function isSlop(title: string, summary: string) {
   return SLOP.some((re) => re.test(text));
 }
 
-function scoreArticle(article: NewsArticle, keywords: string[], interests: string[]) {
+function companyBoost(article: NewsArticle, company?: CompanyInfo) {
+  if (!company) return 0;
+  const text = `${article.title} ${article.summary}`.toLowerCase();
+  let boost = 0;
+  const needles = [
+    company.companyName,
+    ...(company.keywords || []),
+    ...(company.competitors || []),
+    company.industry || "",
+  ]
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean);
+  for (const needle of needles) {
+    if (text.includes(needle)) boost += 5;
+  }
+  return boost;
+}
+
+function scoreArticle(
+  article: NewsArticle,
+  keywords: string[],
+  interests: string[],
+  company?: CompanyInfo,
+) {
   const text = `${article.title} ${article.summary} ${article.category}`.toLowerCase();
-  let score = 0;
+  let score = article.score ?? 0;
   if (interests.includes(article.category)) score += 4;
   for (const keyword of keywords) {
     if (text.includes(keyword.toLowerCase())) score += 2;
   }
   if (article.breaking) score += 3;
+  score += companyBoost(article, company);
   const ageHours = (Date.now() - new Date(article.publishedAt).getTime()) / 3_600_000;
   score += Math.max(0, 3 - ageHours / 8);
   return score;
 }
 
-async function fetchFeed(category: string, url: string): Promise<NewsArticle[]> {
+async function fetchFeed(feed: (typeof FEEDS)[number]): Promise<NewsArticle[]> {
   const parser = new Parser({ timeout: 8000 });
-  const feed = await parser.parseURL(url);
-  return (feed.items ?? []).slice(0, 12).map((item, index) => {
+  const parsed = await parser.parseURL(feed.url);
+  return (parsed.items ?? []).slice(0, 12).map((item, index) => {
     const title = item.title?.trim() || "Untitled";
     const summary = (item.contentSnippet || item.content || item.summary || "")
       .replace(/<[^>]+>/g, " ")
@@ -122,39 +170,49 @@ async function fetchFeed(category: string, url: string): Promise<NewsArticle[]> 
       .slice(0, 320);
     const publishedAt = item.isoDate || item.pubDate || new Date().toISOString();
     return {
-      id: `${category}-${index}-${Buffer.from(title).toString("base64url").slice(0, 12)}`,
+      id: `${feed.category}-${index}-${Buffer.from(title).toString("base64url").slice(0, 12)}`,
       title,
       summary: summary || "No summary provided by the source.",
-      source: feed.title || category,
+      source: feed.name || parsed.title || feed.category,
       url: item.link || "#",
       publishedAt: new Date(publishedAt).toISOString(),
-      category,
+      category: feed.category,
       breaking: BREAKING.some((re) => re.test(title)),
       imageUrl: item.enclosure?.url,
+      tier: "premium",
     } satisfies NewsArticle;
   });
 }
 
-export async function gatherArticles(interests: string[]): Promise<NewsArticle[]> {
+export async function gatherArticles(
+  interests: string[],
+  company?: CompanyInfo,
+): Promise<NewsArticle[]> {
   const selectedFeeds =
     interests.length === 0
       ? FEEDS
       : FEEDS.filter((f) => interests.includes(f.category) || interests.includes("world"));
 
-  const settled = await Promise.allSettled(
-    selectedFeeds.map((feed) => fetchFeed(feed.category, feed.url)),
-  );
-
+  const settled = await Promise.allSettled(selectedFeeds.map((feed) => fetchFeed(feed)));
   const live = settled.flatMap((result) => (result.status === "fulfilled" ? result.value : []));
-  const pool = live.length > 0 ? live : FALLBACK;
-  const keywords = keywordsForInterests(interests);
+  const inbox = await readInboxArticles(100);
+  const pool = [...inbox, ...live];
+  const effective = pool.length > 0 ? pool : FALLBACK;
+  const keywords = [
+    ...keywordsForInterests(interests),
+    ...(company?.keywords || []),
+    company?.companyName || "",
+  ].filter(Boolean);
 
-  return pool
+  return effective
     .filter((article) => !isSlop(article.title, article.summary))
-    .map((article) => ({ article, score: scoreArticle(article, keywords, interests) }))
+    .map((article) => ({
+      article,
+      score: scoreArticle(article, keywords, interests, company),
+    }))
     .filter(({ score }) => score > 0 || interests.length === 0)
     .sort((a, b) => b.score - a.score)
-    .map(({ article }) => article);
+    .map(({ article, score }) => ({ ...article, score }));
 }
 
 function paginate(articles: NewsArticle[], pageCount: "auto" | number): EditionPage[] {
@@ -189,15 +247,23 @@ function paginate(articles: NewsArticle[], pageCount: "auto" | number): EditionP
 }
 
 export async function buildEdition(
-  profile: Pick<UserProfile, "name" | "titleStyle" | "customTitle" | "interests" | "colorMode" | "pageCount">,
+  profile: Pick<
+    UserProfile,
+    "name" | "titleStyle" | "customTitle" | "interests" | "colorMode" | "pageCount" | "kind" | "company"
+  >,
 ): Promise<NewspaperEdition> {
-  const articles = await gatherArticles(profile.interests);
+  const articles = await gatherArticles(profile.interests, profile.company);
   const limited = articles.slice(0, profile.pageCount === "auto" ? 18 : Number(profile.pageCount) * 4);
   const now = new Date();
+  const paperTitle =
+    profile.kind === "company" && profile.company?.companyName
+      ? profile.customTitle?.trim() ||
+        `The ${profile.company.companyName} Times`
+      : resolvePaperTitle(profile);
 
   return {
     id: `edition-${now.toISOString().slice(0, 10)}`,
-    paperTitle: resolvePaperTitle(profile),
+    paperTitle,
     dateLabel: now.toLocaleDateString("en-US", {
       weekday: "long",
       month: "long",
@@ -208,6 +274,8 @@ export async function buildEdition(
     colorMode: profile.colorMode as ColorMode,
     pages: paginate(limited, profile.pageCount),
     articles: limited,
+    kind: profile.kind || "personal",
+    companyName: profile.company?.companyName,
   };
 }
 

@@ -5,6 +5,7 @@ import path from "node:path";
 import { buildEdition } from "@/lib/news";
 
 const schema = z.object({
+  kind: z.enum(["personal", "company"]).default("personal"),
   name: z.string().min(1),
   titleStyle: z.enum([
     "the-times",
@@ -19,6 +20,15 @@ const schema = z.object({
   colorMode: z.enum(["bw", "color"]).default("bw"),
   pageCount: z.union([z.literal("auto"), z.number().int().min(1).max(12)]).default("auto"),
   printTime: z.string().optional(),
+  printerId: z.string().optional(),
+  company: z
+    .object({
+      companyName: z.string(),
+      industry: z.string().optional(),
+      keywords: z.array(z.string()).default([]),
+      competitors: z.array(z.string()).optional(),
+    })
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -36,8 +46,10 @@ export async function POST(request: Request) {
         {
           queuedAt: new Date().toISOString(),
           printTime: input.printTime,
+          printerId: input.printerId,
           colorMode: input.colorMode,
           edition,
+          auto: false,
         },
         null,
         2,
@@ -50,7 +62,7 @@ export async function POST(request: Request) {
       job: filename,
       path: filepath,
       pages: edition.pages.length,
-      hint: "Run `npm run print-agent` on the machine connected to your printer.",
+      hint: "Hands-free loop: npm run agent:print · one-shot watcher: npm run print-agent",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Print queue failed";

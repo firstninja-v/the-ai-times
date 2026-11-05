@@ -41,3 +41,7 @@ next-env.d.ts
 
 # ai-times local runtime
 .ai-times/
+
+agents/__pycache__/
+**/__pycache__/
+*.pyc

@@ -8,19 +8,55 @@ export type PaperTitleStyle =
   | "the-post"
   | "custom";
 
+export type PaperKind = "personal" | "company";
+
+export interface CompanyInfo {
+  companyName: string;
+  industry?: string;
+  keywords: string[];
+  competitors?: string[];
+  pressUrls?: string[];
+  website?: string;
+}
+
+export interface PrinterSettings {
+  paperSize: "A4" | "Letter" | "Tabloid";
+  colorMode: ColorMode;
+  duplex: boolean;
+  copies: number;
+  orientation: "portrait" | "landscape";
+  autoPrint: boolean;
+}
+
+export interface PrinterDevice {
+  id: string;
+  name: string;
+  driver: "cups" | "ipp" | "file";
+  uri?: string;
+  isDefault?: boolean;
+  supportsColor?: boolean;
+  paperSizes?: string[];
+  duplex?: boolean;
+  status?: string;
+  settings?: PrinterSettings;
+}
+
 export interface UserProfile {
+  kind: PaperKind;
   name: string;
   email: string;
   titleStyle: PaperTitleStyle;
   customTitle?: string;
   interests: string[];
   colorMode: ColorMode;
-  emailTime: string; // HH:mm local
+  emailTime: string;
   printEnabled: boolean;
-  printTime: string; // HH:mm local
+  printTime: string;
+  printerId?: string;
   timezone: string;
   pageCount: "auto" | number;
   breakingNews: boolean;
+  company?: CompanyInfo;
   createdAt: string;
 }
 
@@ -34,6 +70,9 @@ export interface NewsArticle {
   category: string;
   breaking?: boolean;
   imageUrl?: string;
+  score?: number;
+  providerId?: string;
+  tier?: string;
 }
 
 export interface NewspaperEdition {
@@ -44,6 +83,8 @@ export interface NewspaperEdition {
   colorMode: ColorMode;
   pages: EditionPage[];
   articles: NewsArticle[];
+  kind?: PaperKind;
+  companyName?: string;
 }
 
 export interface EditionPage {

@@ -9,6 +9,7 @@ import { loadProfile } from "@/lib/storage";
 import type { NewspaperEdition, UserProfile } from "@/lib/types";
 
 const SAMPLE_PROFILE: UserProfile = {
+  kind: "personal",
   name: "Reader",
   email: "reader@theaitimes.local",
   titleStyle: "the-times",
