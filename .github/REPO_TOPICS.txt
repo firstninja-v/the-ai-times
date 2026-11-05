@@ -1,0 +1,21 @@
+# Paste these in GitHub → About → Topics (and set the Description below)
+
+Description:
+Personal morning newspaper — interest-matched RSS, daily email, Wi-Fi/AirPrint printing, pause when away.
+
+Topics (comma-separated in the UI):
+newspaper
+rss
+nextjs
+python
+automation
+airprint
+ipp
+self-hosted
+scrapling
+morning-routine
+print
+open-source
+typescript
+byok
+agent

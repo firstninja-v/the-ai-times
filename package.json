@@ -2,7 +2,22 @@
   "name": "ai-times",
   "version": "0.1.0",
   "private": true,
-  "description": "The AI Times — your personal morning newspaper. Interest-matched, ad-free, emailed & printed daily.",
+  "description": "Wake up to a printed paper, not a feed. Interest-matched morning newspaper with daily email, Wi-Fi/AirPrint agents, and pause/resume when you're away.",
+  "homepage": "https://github.com/firstninja-v/the-ai-times",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/firstninja-v/the-ai-times.git"
+  },
+  "keywords": [
+    "newspaper",
+    "rss",
+    "nextjs",
+    "python",
+    "airprint",
+    "automation",
+    "self-hosted",
+    "morning-routine"
+  ],
   "scripts": {
     "dev": "next dev --port 43123",
     "build": "next build",

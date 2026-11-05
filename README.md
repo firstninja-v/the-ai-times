@@ -1,158 +1,144 @@
-# The AI Times
+<p align="center">
+  <img src="banner.jpg" alt="The AI Times" width="100%" />
+</p>
 
-![The AI Times](banner.jpg)
+<h1 align="center">The AI Times</h1>
 
-**Your personal — or company — morning newspaper.**  
-Interest-matched. Ad-free. Sourced from premium wires. Scraped daily with [Scrapling](https://github.com/D4Vinci/Scrapling). Emailed every morning. Printed on a hands-free loop.
+<p align="center">
+  <strong>Wake up to a printed paper — not a feed.</strong><br/>
+  Interest-matched morning newspaper. Emailed daily. Printed on your Wi‑Fi printer.<br/>
+  Pause when you’re away. Resume when you’re home.
+</p>
 
-## What it does
+<p align="center">
+  <a href="#quick-start"><img src="https://img.shields.io/badge/quick%20start-2%20commands-111111?style=flat-square" alt="Quick start" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-C62828?style=flat-square" alt="MIT" /></a>
+  <a href="#stack"><img src="https://img.shields.io/badge/Next.js%20%2B%20Python%20agents-ready-0A7A3E?style=flat-square" alt="Stack" /></a>
+  <a href="#daily-agent"><img src="https://img.shields.io/badge/Wi‑Fi%20%2F%20AirPrint-supported-0071e3?style=flat-square" alt="Wi-Fi print" /></a>
+</p>
 
-- **Personal papers** — *The [Your Name] Times*, Daily News, Herald, Post, custom mastheads
-- **Company papers** — brand / market / competitor keywords → a private company newspaper
-- **Premium providers** — BBC, Guardian, TechCrunch, NPR, AP & Bloomberg via Google News RSS, plus Scrapling HTML desks
-- **Always-on news agent** — Scrapling + RSS loop that scores importance and raises breaking alerts
-- **Hands-free print daemon** — discovers CUPS / IPP / PDF printers, stores paper settings, auto-prints at the chosen time without another click
+---
+
+## Why this exists
+
+Most news products optimize for **engagement**. The AI Times optimizes for **signal**.
+
+| Old morning | With The AI Times |
+|---|---|
+| Infinite scroll, ads, outrage | One A4 paper, your interests only |
+| Tap Print every day | Printer runs itself at 6:05 |
+| Miss it while traveling | **Pause printing** → **Resume** when home |
+
+Built for people who still believe a paper on the table beats another tab.
+
+---
+
+## Demo
+
+<p align="center">
+  <img src="docs/shots/home.jpg" alt="Home — compose your paper" width="48%" />
+  <img src="docs/shots/edition.jpg" alt="Dense A4 edition" width="48%" />
+</p>
+<p align="center">
+  <img src="docs/shots/agent.jpg" alt="Daily agent — Wi-Fi printer + pause/play" width="48%" />
+  <img src="docs/shots/studio.jpg" alt="Design studio templates" width="48%" />
+</p>
+
+> **Hook for Show HN / Product Hunt:**  
+> “An always-on agent that turns RSS into *The [Your Name] Times*, emails it at 6:00, and AirPrints it at 6:05 — with a Pause button for when you’re not home.”
+
+---
+
+## Features
+
+- **Personal or company paper** — *The Sairam Times*, Herald, Post, or *The Acme Times*
+- **News prompt + BYOK** — OpenAI, Claude, Gemini, Groq, Ollama, or offline desk
+- **Always-on agents** — Scrapling + RSS desk, morning delivery, print daemon (Python)
+- **Dense A4 layouts** — classic / modern / compact / broadsheet / magazine
+- **Wi‑Fi / AirPrint / IPP** — connect your home or office printer **once**
+- **Pause / Resume** — skip printing while traveling; email can still arrive
+- **Daily puzzles** — crossword, sudoku, word search, cryptogram, trivia (unique per day)
+- **Share** — WhatsApp, Slack webhook, mailto, copy link
+
+---
 
 ## Quick start
 
 ```bash
+git clone https://github.com/firstninja-v/the-ai-times.git
+cd the-ai-times
 npm install
 npm run agents:install
 npm run dev
 ```
 
-Open [http://127.0.0.1:43123](http://127.0.0.1:43123).
+Open **http://127.0.0.1:43123**
 
-### Design studio (templates + BYOK)
-
-Open [/studio](http://127.0.0.1:43123/studio):
-
-1. Click a template card — live HTML preview updates immediately
-2. Paste your API key (OpenAI / Claude / Gemini / Groq / Ollama)
-3. Choose **pages**, **font**, and **black & white vs color**
-4. **Generate** one paper or **Generate all templates**
-
-The Next.js API passes those options + your key into the Python generator (`agents/newspaper`), which writes readable image-rich HTML under `public/editions/`.
-
-### Designed newspaper HTML (CLI)
-
-Ready-made templates: `classic`, `modern`, `compact`, `broadsheet`, `magazine`.
+1. **Compose your paper** → `/setup`
+2. **Connect Wi‑Fi printer + schedule** → `/agent` → **Turn on every day**
+3. **Run once now** to prove generate → email → print
 
 ```bash
-# list templates
-npm run agent:paper -- --list-templates
-
-# generate today (offline desk editor if no key)
-npm run agent:paper -- --template modern --pages 4 --font newsreader --color bw
-
-# use any small OpenAI-compatible model
-export LLM_API_KEY=sk-...
-export LLM_BASE_URL=https://api.openai.com/v1   # or Groq / Together / Ollama
-export LLM_MODEL=gpt-4o-mini
-npm run agent:paper -- --template classic --email you@example.com
-
-# render every template
-npm run agent:paper -- --all-templates --no-llm
-
-# refresh visual previews for the studio gallery
-npm run agent:paper:previews
+# Keep agents running (or use the Turn on every day button)
+npm run agent:news      # wires all day
+npm run agent:morning   # generate → email → print on schedule
+npm run agent:print     # printer loop / discovery
 ```
 
-Editions land in `.ai-times/editions/` and `public/editions/`. Copy `agents/.env.example` for LLM + SMTP.
+---
 
-### Daily agent (every morning + home printer)
+## Daily agent
 
-Open [/agent](http://127.0.0.1:43123/agent):
+Open [`/agent`](http://127.0.0.1:43123/agent):
 
-1. **Connect your home/office printer once** (Discover CUPS, or add IPP like `ipp://192.168.1.50/ipp/print`)
-2. Set **email time** + **print time** + recipient
-3. Click **Turn on every day** — mornings send the A4 paper to that same printer
-4. **Pause printing** when away; **Resume** when home
-5. Optional: **Run once now** / **Test print**
+1. **Scan Wi‑Fi printers** or paste `ipp://192.168.x.x/ipp/print`
+2. **Connect this printer** once
+3. Set email time / print time
+4. **Turn on every day**
+5. Leaving town? **Pause printing** → back home? **Resume**
 
-You do **not** reconnect the printer each day or keep the website open. Keep the machine (or a small home server) running.
+No browser tab required after that. Keep the machine (or a small home server) on.
 
-Or from a terminal:
+---
 
-```bash
-# Terminal A — continuous Scrapling + wire collection
-npm run agent:news
+## Stack
 
-# Terminal B — morning agent: generate A4 paper → email → print on schedule
-npm run agent:morning
-
-# Terminal C — printer discovery + scheduled auto-print fallback
-npm run agent:print
-
-# Smoke test morning pipeline once (generate + mock email + PDF/HTML print file)
-npm run agent:morning:once
-
-# One-shot daily paper (cron-friendly)
-npm run agent:paper:daily
-```
-
-Papers render at **A4** (`210mm × 297mm`) with dense multi-column layouts.
-
-### Reading volume
-
-In Setup or Studio, pick **Less / Medium / More**:
-- **Less** — ~10 shorter stories  
-- **Medium** — ~18 balanced pieces  
-- **More** — ~28 longer bodies (default)
-
-```bash
-npm run agent:paper -- --volume more --pages 4
-```
-
-### Games desk (daily puzzles)
-
-Pick any of five classic paper games in Setup or Studio — **Crossword, Sudoku, Word Search, Cryptogram, Trivia** — with Easy / Medium / Hard.  
-Each day the Python desk mints a **new unique board** (fingerprints stored in `.ai-times/puzzles/`) and skips news stories already printed, so neither games nor wires repeat.
-
-```bash
-npm run agent:paper -- --puzzles crossword,sudoku,wordsearch,cryptogram,trivia --puzzle-difficulty hard
-```
-
-Optional env:
-
-```bash
-export AI_TIMES_API=http://127.0.0.1:43123
-export AI_TIMES_AGENT_POLL=90
-export AI_TIMES_PRINT_POLL=30
-# Network printers: name|ipp://host/printers/queue,name2|ipp://...
-export IPP_PRINTERS="lobby|ipp://192.168.1.50/ipp/print"
-```
-
-### Settings — printers, email, share
-
-Open [/settings](http://127.0.0.1:43123/settings) for printer discovery, SMTP, and WhatsApp/Slack sharing.
-
-For the everyday morning loop, use [/agent](http://127.0.0.1:43123/agent) (schedule + **Turn on every day**).
-
-Images prefer original wire photos; when a feed has no image (or reuses the same asset), the desk draws a **unique** editorial placeholder — never repeating stock pets.
-
-### Email (optional)
-
-Use **Settings → Email**, or copy `.env.example` → `.env.local` and set SMTP. Without SMTP, the agent still writes a local email preview so the loop keeps working.
-
-## Architecture
-
-| Piece | Role |
+| Layer | Tech |
 |---|---|
-| Next.js app | Setup, studio, Settings (agents/printers/email/share), edition UI |
-| `agents/news_agent.py` | Scrapling + premium RSS desk, importance scoring, inbox + breaking ingest |
-| `agents/morning_daemon.py` | Generate A4 paper → email → print on agent schedule |
-| `agents/print_daemon.py` | Printer registry, settings, forever loop, auto print at `printTime` |
-| `.ai-times/` | Local runtime: inbox, profiles, printers, settings, print queue |
+| App | Next.js · TypeScript · Tailwind · shadcn/ui |
+| Agents | Python — `morning_daemon.py`, `news_agent.py`, `print_daemon.py` |
+| Paper desk | `agents/newspaper/` — fetch, layout, images, puzzles, Wi‑Fi IPP |
+| Runtime | `.ai-times/` profiles, printers, delivery pause state, inbox |
 
-## Company paper flow
+---
 
-1. Open **/company**
-2. Enter company, industry, keywords, competitors
-3. Save → profile syncs into `.ai-times/profiles/`
-4. News agent boosts matching stories all day
-5. Print daemon fires the edition at the company print time
+## Project layout
+
+```
+src/                 # Next.js UI + APIs
+agents/              # Python daemons + newspaper studio
+docs/shots/          # README screenshots
+banner.jpg           # GitHub banner
+LICENSE
+```
+
+---
+
+## Launch checklist (Repo of the Day)
+
+Use [`.github/LAUNCH.md`](.github/LAUNCH.md) for the full list. Short version:
+
+- [ ] Push this `main` to GitHub (so Python agents + banner appear)
+- [ ] Set **About** description + topics from [`.github/REPO_TOPICS.txt`](.github/REPO_TOPICS.txt)
+- [ ] Social preview: upload `docs/og-card.jpg` in repo Settings → Social preview
+- [ ] Pin the repo on your profile
+- [ ] Post **Show HN** with the hook above + 20s demo
+- [ ] Share in r/selfhosted + r/rss with a GIF of print/pause
+
+---
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+<p align="center"><sub>All the signal · None of the slop</sub></p>
