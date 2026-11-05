@@ -136,46 +136,51 @@ export default function SettingsPage() {
   }
 
   async function createAgent() {
-    const id = `agent-${Date.now().toString(36)}`;
+    const name = agentDraft.name.trim() || "Morning Delivery";
+    const existing = settings.agents.find(
+      (a) => a.name.toLowerCase() === name.toLowerCase() || a.id === settings.agents[0]?.id,
+    );
     const agent: DeliveryAgent = {
-      id,
-      name: agentDraft.name.trim() || "Morning Delivery",
+      id: existing?.id || `agent-${Date.now().toString(36)}`,
+      name,
       enabled: true,
       emailTime: agentDraft.emailTime,
       printTime: agentDraft.printTime,
       printEnabled: agentDraft.printEnabled,
       printerId: selectedPrinter || undefined,
       timezone: agentDraft.timezone,
-      createdAt: new Date().toISOString(),
+      createdAt: existing?.createdAt || new Date().toISOString(),
     };
-    const next = { ...settings, agents: [...settings.agents, agent] };
+    // One primary schedule — upsert by name and drop exact duplicates.
+    const others = settings.agents.filter(
+      (a) => a.id !== agent.id && a.name.toLowerCase() !== name.toLowerCase(),
+    );
+    const next = { ...settings, agents: [agent, ...others] };
     await persist(next);
 
     // Mirror into the profile the morning daemon already watches
     const profile = loadProfile();
     if (profile) {
-      saveProfile({
+      const synced = {
         ...profile,
         emailTime: agent.emailTime,
         printTime: agent.printTime,
         printEnabled: agent.printEnabled,
         printerId: agent.printerId,
         timezone: agent.timezone,
-      });
+      };
+      saveProfile(synced);
       await fetch("/api/profile/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...profile,
-          emailTime: agent.emailTime,
-          printTime: agent.printTime,
-          printEnabled: agent.printEnabled,
-          printerId: agent.printerId,
-          timezone: agent.timezone,
-        }),
+        body: JSON.stringify(synced),
       });
     }
-    setStatus(`Agent “${agent.name}” created. Morning loop will email at ${agent.emailTime} and print at ${agent.printTime}.`);
+    setStatus(
+      existing
+        ? `Updated “${agent.name}” — email ${agent.emailTime}, print ${agent.printTime}. Open Daily agent to turn it on.`
+        : `Saved “${agent.name}” — email ${agent.emailTime}, print ${agent.printTime}. Open Daily agent to turn it on every day.`,
+    );
     void refreshAgentStatus();
   }
 
@@ -285,8 +290,13 @@ export default function SettingsPage() {
   async function share(channel: "slack" | "whatsapp" | "email" | "link") {
     setBusy(true);
     try {
-      // Persist share settings first so Slack webhook is available server-side
-      await persist(settings);
+      // Persist share settings quietly so Slack webhook is available server-side
+      saveSettingsLocal(settings);
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
       const res = await fetch("/api/share", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -295,13 +305,17 @@ export default function SettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Share failed");
       if (channel === "slack") {
-        setStatus("Posted to Slack.");
+        setStatus("Shared: posted today’s edition to Slack.");
       } else if (channel === "link") {
         await navigator.clipboard.writeText(data.url);
-        setStatus("Edition link copied.");
+        setStatus(`Shared: link copied — ${data.url}`);
       } else if (data.url) {
         window.open(data.url, "_blank", "noopener,noreferrer");
-        setStatus(channel === "whatsapp" ? "Opened WhatsApp share." : "Opened email draft.");
+        setStatus(
+          channel === "whatsapp"
+            ? "Shared: opened WhatsApp with today’s edition link."
+            : "Shared: opened an email draft with today’s edition.",
+        );
       }
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Share failed");
@@ -350,9 +364,14 @@ export default function SettingsPage() {
 
         {/* Agents */}
         <section className="surface mt-10 rounded-3xl p-6 sm:p-8">
-          <h2 className="font-display text-xl font-semibold tracking-[-0.02em]">Delivery agent</h2>
+          <h2 className="font-display text-xl font-semibold tracking-[-0.02em]">Delivery schedule</h2>
           <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
-            One agent generates the paper, emails it, then sends it to your printer on a schedule.
+            Save times here, then open{" "}
+            <Link href="/agent" className="underline">
+              Daily agent
+            </Link>{" "}
+            and click <strong>Turn on every day</strong>. Saving again with the same name updates the
+            existing schedule instead of duplicating it.
           </p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
