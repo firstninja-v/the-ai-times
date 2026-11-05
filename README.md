@@ -58,16 +58,17 @@ npm run agent:paper:previews
 
 Editions land in `.ai-times/editions/` and `public/editions/`. Copy `agents/.env.example` for LLM + SMTP.
 
-### Daily agent (every morning)
+### Daily agent (every morning + home printer)
 
 Open [/agent](http://127.0.0.1:43123/agent):
 
-1. Set **email time** + **print time** + recipient
-2. Optional: free Gmail SMTP App Password
-3. Click **Turn on every day** — starts morning + news + print agents
-4. Optional: **Run once now** to prove the loop
+1. **Connect your home/office printer once** (Discover CUPS, or add IPP like `ipp://192.168.1.50/ipp/print`)
+2. Set **email time** + **print time** + recipient
+3. Click **Turn on every day** — mornings send the A4 paper to that same printer
+4. **Pause printing** when away; **Resume** when home
+5. Optional: **Run once now** / **Test print**
 
-You do **not** need to keep the website tab open. Keep the machine (or server) running.
+You do **not** reconnect the printer each day or keep the website open. Keep the machine (or a small home server) running.
 
 Or from a terminal:
 
