@@ -1,8 +1,6 @@
 # The AI Times
 
-<p align="center">
-  <img src="docs/ai-times-readme-banner.jpg" alt="The AI Times — morning newspaper banner" width="100%" />
-</p>
+![The AI Times](banner.jpg)
 
 **Your personal — or company — morning newspaper.**  
 Interest-matched. Ad-free. Sourced from premium wires. Scraped daily with [Scrapling](https://github.com/D4Vinci/Scrapling). Emailed every morning. Printed on a hands-free loop.
