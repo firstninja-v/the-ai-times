@@ -15,9 +15,17 @@ const ui = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "The AI Times — Your personal morning newspaper",
+  title: {
+    default: "The AI Times",
+    template: "%s · The AI Times",
+  },
   description:
-    "Interest-matched news. No ads. Email every morning. Print at your desk. Breaking alerts when it matters.",
+    "Your morning paper — interest-matched, emailed daily, printed on your home or office printer.",
+  applicationName: "The AI Times",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon" }],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
