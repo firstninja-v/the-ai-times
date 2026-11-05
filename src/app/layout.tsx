@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Newsreader, Figtree } from "next/font/google";
+import { Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
 const display = Newsreader({
@@ -8,7 +8,7 @@ const display = Newsreader({
   display: "swap",
 });
 
-const ui = Figtree({
+const ui = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-ui",
   display: "swap",
@@ -23,7 +23,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${display.variable} ${ui.variable} font-ui antialiased`}>{children}</body>
+      <body className={`${display.variable} ${ui.variable} font-ui text-[15px] leading-relaxed`}>
+        {children}
+      </body>
     </html>
   );
 }

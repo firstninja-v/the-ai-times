@@ -4,54 +4,135 @@
 
 @layer base {
   :root {
-    --background: 40 14% 97%;
-    --foreground: 0 0% 8%;
+    --background: 240 20% 99%;
+    --foreground: 240 6% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 8%;
+    --card-foreground: 240 6% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 8%;
-    --primary: 0 0% 8%;
-    --primary-foreground: 40 14% 97%;
-    --secondary: 40 10% 93%;
-    --secondary-foreground: 0 0% 12%;
-    --muted: 40 8% 92%;
-    --muted-foreground: 0 0% 38%;
-    --accent: 40 10% 93%;
-    --accent-foreground: 0 0% 12%;
-    --destructive: 0 72% 42%;
-    --border: 40 8% 84%;
-    --input: 40 8% 84%;
-    --ring: 0 0% 8%;
-    --radius: 0.25rem;
-    --paper: 40 18% 97%;
-    --ink: 0 0% 8%;
-    --rule: 0 0% 72%;
-    --masthead: 0 72% 38%;
-    --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+    --popover-foreground: 240 6% 10%;
+    --primary: 211 100% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 11% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 10% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 240 11% 96%;
+    --accent-foreground: 240 6% 10%;
+    --destructive: 0 72% 51%;
+    --border: 240 10% 90%;
+    --input: 240 10% 90%;
+    --ring: 211 100% 45%;
+    --radius: 0.875rem;
+    --ink: 240 6% 10%;
+    --paper: 40 33% 99%;
+    --rule: 240 8% 86%;
+    --masthead: 0 78% 42%;
+    --apple-blue: 211 100% 45%;
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
-    background-image: var(--grain);
-    background-attachment: fixed;
+    font-feature-settings: "ss01" on, "cv11" on;
+    background:
+      radial-gradient(1200px 700px at 50% -20%, rgba(0, 113, 227, 0.07), transparent 55%),
+      radial-gradient(900px 500px at 100% 0%, rgba(0, 0, 0, 0.03), transparent 45%),
+      hsl(var(--background));
+    min-height: 100vh;
   }
 
   ::selection {
-    background: hsl(var(--masthead) / 0.16);
+    background: rgba(0, 113, 227, 0.18);
+  }
+
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    opacity: 0.45;
   }
 }
 
-@layer utilities {
+@layer components {
   .font-display {
-    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-family: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
   }
 
   .font-ui {
     font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .glass-bar {
+    background: rgba(251, 251, 253, 0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .surface {
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.7) inset,
+      0 18px 40px -28px rgba(0, 0, 0, 0.28);
+  }
+
+  .choice {
+    @apply rounded-2xl border border-black/[0.08] bg-white/80 px-4 py-3 text-left transition;
+  }
+
+  .choice:hover {
+    border-color: rgba(0, 0, 0, 0.16);
+  }
+
+  .choice-active {
+    border-color: rgba(0, 113, 227, 0.55);
+    background: rgba(0, 113, 227, 0.06);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12);
+  }
+
+  .btn-primary {
+    @apply inline-flex h-12 items-center justify-center rounded-full bg-[hsl(var(--apple-blue))] px-7 text-[15px] font-semibold tracking-[-0.01em] text-white transition duration-200;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.24) inset,
+      0 10px 24px -14px rgba(0, 113, 227, 0.8);
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.06);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-secondary {
+    @apply inline-flex h-12 items-center justify-center rounded-full border border-black/[0.08] bg-white/80 px-7 text-[15px] font-semibold tracking-[-0.01em] text-[hsl(var(--ink))] transition duration-200;
+    box-shadow: 0 10px 30px -22px rgba(0, 0, 0, 0.35);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.98);
+  }
+
+  .btn-secondary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-ghost {
+    @apply inline-flex h-11 items-center justify-center rounded-full px-4 text-[14px] font-medium text-[hsl(var(--muted-foreground))] transition hover:text-[hsl(var(--ink))];
+  }
+
+  .paper-sheet {
+    background: hsl(var(--paper));
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.8) inset,
+      0 30px 80px -40px rgba(0, 0, 0, 0.35);
   }
 
   .ink-rule {
@@ -60,36 +141,35 @@
   }
 
   .ink-rule-thick {
-    height: 3px;
+    height: 2.5px;
     background: hsl(var(--ink));
   }
 
-  .paper-sheet {
-    background: hsl(var(--paper));
-    box-shadow: 0 24px 60px -36px rgb(0 0 0 / 0.35);
-  }
-
   .edition-bw img {
-    filter: grayscale(1) contrast(1.05);
+    filter: grayscale(1) contrast(1.04);
   }
 
-  .animate-rise {
-    animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  .reveal {
+    animation: reveal 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  .animate-draw {
-    animation: draw 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  .reveal-delay-1 {
+    animation-delay: 80ms;
   }
 
-  .animate-fade {
-    animation: fade 1.2s ease both;
+  .reveal-delay-2 {
+    animation-delay: 160ms;
+  }
+
+  .reveal-delay-3 {
+    animation-delay: 240ms;
   }
 }
 
-@keyframes rise {
+@keyframes reveal {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -97,30 +177,20 @@
   }
 }
 
-@keyframes draw {
-  from {
-    transform: scaleX(0);
-    opacity: 0;
-  }
-  to {
-    transform: scaleX(1);
-    opacity: 1;
-  }
-}
-
-@keyframes fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-delay-1,
+  .reveal-delay-2,
+  .reveal-delay-3 {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
 @media print {
   body {
     background: white !important;
-    background-image: none !important;
   }
 
   .no-print {
@@ -129,14 +199,11 @@
 
   .paper-sheet {
     box-shadow: none !important;
+    border: none !important;
     break-after: page;
     width: 100% !important;
     max-width: none !important;
     margin: 0 !important;
-    padding: 0.4in !important;
-  }
-
-  .edition-page {
-    min-height: auto !important;
+    padding: 0.45in !important;
   }
 }

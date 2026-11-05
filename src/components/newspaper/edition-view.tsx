@@ -8,17 +8,17 @@ export function EditionView({ edition }: { edition: NewspaperEdition }) {
       {edition.pages.map((page) => (
         <article
           key={page.number}
-          className="edition-page paper-sheet relative overflow-hidden px-6 py-8 sm:px-10 sm:py-12"
+          className="edition-page paper-sheet relative overflow-hidden rounded-[4px] px-6 py-8 sm:px-11 sm:py-12"
         >
-          <header className="mb-6 text-center">
-            <p className="font-ui text-[11px] uppercase tracking-[0.28em] text-masthead">
+          <header className="mb-7 text-center">
+            <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-[hsl(var(--masthead))]">
               The AI Times · Vol. I
             </p>
-            <h1 className="font-display mt-2 text-4xl font-semibold tracking-tight text-ink sm:text-6xl">
+            <h1 className="font-display mt-2 text-[clamp(2.2rem,6vw,3.6rem)] font-semibold tracking-[-0.03em] text-[hsl(var(--ink))]">
               {edition.paperTitle}
             </h1>
-            <div className="ink-rule-thick mx-auto mt-4 w-full origin-center animate-draw" />
-            <div className="mt-3 flex items-center justify-between gap-4 font-ui text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            <div className="ink-rule-thick mx-auto mt-4 w-full" />
+            <div className="mt-3 flex items-center justify-between gap-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[hsl(var(--muted-foreground))]">
               <span>{edition.dateLabel}</span>
               <span>
                 Page {page.number} of {edition.pages.length}
@@ -32,47 +32,50 @@ export function EditionView({ edition }: { edition: NewspaperEdition }) {
             {page.sections.map((section, sectionIndex) => (
               <section key={`${page.number}-${sectionIndex}`}>
                 {section.heading ? (
-                  <h2 className="font-ui mb-4 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+                  <h2 className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-[hsl(var(--muted-foreground))]">
                     {section.heading}
                   </h2>
                 ) : null}
 
                 {section.layout === "lead" ? (
-                  <div className="grid gap-6 border-b border-rule pb-8 md:grid-cols-[1.4fr_1fr]">
+                  <div className="border-b border-[hsl(var(--rule))] pb-8">
                     {section.articles.map((article) => (
-                      <div key={article.id} className="md:col-span-2">
-                        <p className="font-ui text-[11px] uppercase tracking-[0.18em] text-masthead">
+                      <div key={article.id}>
+                        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[hsl(var(--masthead))]">
                           {article.breaking ? "Breaking · " : ""}
                           {article.category}
                         </p>
-                        <h3 className="font-display mt-2 text-3xl font-semibold leading-tight text-ink sm:text-5xl">
+                        <h3 className="font-display mt-2 text-[clamp(1.8rem,4vw,2.8rem)] font-semibold leading-[1.08] tracking-[-0.025em] text-[hsl(var(--ink))]">
                           <a href={article.url} target="_blank" rel="noreferrer" className="hover:underline">
                             {article.title}
                           </a>
                         </h3>
-                        <p className="font-display mt-4 max-w-3xl text-lg leading-relaxed text-ink/80">
+                        <p className="font-display mt-4 max-w-3xl text-[18px] leading-relaxed text-[hsl(var(--ink))]/80">
                           {article.summary}
                         </p>
-                        <p className="font-ui mt-3 text-xs text-muted-foreground">{article.source}</p>
+                        <p className="mt-3 text-[12px] text-[hsl(var(--muted-foreground))]">{article.source}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="columns-1 gap-8 sm:columns-2">
                     {section.articles.map((article) => (
-                      <div key={article.id} className="mb-6 break-inside-avoid border-t border-rule pt-4">
-                        <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      <div
+                        key={article.id}
+                        className="mb-6 break-inside-avoid border-t border-[hsl(var(--rule))] pt-4"
+                      >
+                        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[hsl(var(--muted-foreground))]">
                           {article.category}
                         </p>
-                        <h3 className="font-display mt-1 text-xl font-semibold leading-snug text-ink">
+                        <h3 className="font-display mt-1 text-[1.25rem] font-semibold leading-snug tracking-[-0.02em] text-[hsl(var(--ink))]">
                           <a href={article.url} target="_blank" rel="noreferrer" className="hover:underline">
                             {article.title}
                           </a>
                         </h3>
-                        <p className="font-display mt-2 text-[15px] leading-relaxed text-ink/75">
+                        <p className="font-display mt-2 text-[15px] leading-relaxed text-[hsl(var(--ink))]/75">
                           {article.summary}
                         </p>
-                        <p className="font-ui mt-2 text-[11px] text-muted-foreground">{article.source}</p>
+                        <p className="mt-2 text-[11px] text-[hsl(var(--muted-foreground))]">{article.source}</p>
                       </div>
                     ))}
                   </div>

@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { EditionView } from "@/components/newspaper/edition-view";
 import { DeliveryScheduler } from "@/components/delivery-scheduler";
+import { SiteHeader } from "@/components/site-header";
 import { loadProfile } from "@/lib/storage";
 import type { NewspaperEdition, UserProfile } from "@/lib/types";
 
 const SAMPLE_PROFILE: UserProfile = {
   name: "Reader",
-  email: "reader@ai-times.local",
+  email: "reader@theaitimes.local",
   titleStyle: "the-times",
   interests: ["technology", "world", "business", "science"],
   colorMode: "bw",
@@ -58,96 +58,114 @@ export default function EditionPage() {
   async function sendEmailNow() {
     if (!profile) return;
     setStatus("Sending morning edition…");
-    const res = await fetch("/api/email/morning", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(profile),
-    });
-    const data = await res.json();
-    setStatus(
-      res.ok
-        ? data.result?.mode === "mock"
-          ? "Email mocked to server logs (configure SMTP to send for real)."
-          : "Morning edition emailed."
-        : data.error || "Email failed",
-    );
+    try {
+      const res = await fetch("/api/email/morning", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      });
+      const data = await res.json();
+      setStatus(
+        res.ok
+          ? data.result?.mode === "mock"
+            ? "Email mocked to server logs (add SMTP in .env.local to send for real)."
+            : "Morning edition emailed."
+          : data.error || "Email failed",
+      );
+    } catch {
+      setStatus("Email request failed. Is the server running?");
+    }
   }
 
   async function queuePrint() {
     if (!profile) return;
     setStatus("Queuing print job…");
-    const res = await fetch("/api/print/job", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(profile),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setStatus(`Print job queued (${data.pages} pages). Run npm run print-agent.`);
-      window.print();
-    } else {
-      setStatus(data.error || "Print queue failed");
+    try {
+      const res = await fetch("/api/print/job", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatus(`Print job queued (${data.pages} pages). Run npm run print-agent.`);
+        window.setTimeout(() => window.print(), 150);
+      } else {
+        setStatus(data.error || "Print queue failed");
+      }
+    } catch {
+      setStatus("Print request failed. Is the server running?");
     }
   }
 
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-8">
+    <main className="min-h-screen pb-16">
       {profile ? (
         <DeliveryScheduler profile={profile} onMorningPrint={() => window.print()} />
       ) : null}
 
-      <div className="no-print mx-auto mb-8 flex max-w-5xl flex-wrap items-center justify-between gap-4">
-        <div>
-          <Link href="/" className="font-display text-lg font-semibold tracking-tight">
-            The AI Times
-          </Link>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {profile ? `${profile.name} · ${profile.interests.length} interests` : "Loading profile…"}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" className="rounded-sm">
-            <Link href="/setup">Edit setup</Link>
-          </Button>
-          <Button variant="outline" className="rounded-sm" onClick={() => profile && refresh(profile)} disabled={loading}>
-            Refresh
-          </Button>
-          <Button variant="outline" className="rounded-sm" onClick={sendEmailNow}>
-            Email now
-          </Button>
-          <Button className="rounded-sm" onClick={queuePrint}>
-            Print
-          </Button>
-        </div>
-      </div>
-
-      {status ? (
-        <p className="no-print mx-auto mb-6 max-w-5xl text-sm text-muted-foreground">{status}</p>
-      ) : null}
-
-      {loading ? (
-        <div className="mx-auto max-w-5xl animate-pulse paper-sheet px-8 py-16">
-          <div className="mx-auto h-10 w-64 bg-ink/10" />
-          <div className="mx-auto mt-6 h-px w-full bg-ink/20" />
-          <div className="mt-10 space-y-3">
-            <div className="h-4 w-3/4 bg-ink/10" />
-            <div className="h-4 w-full bg-ink/10" />
-            <div className="h-4 w-5/6 bg-ink/10" />
+      <SiteHeader
+        right={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Link href="/setup" className="btn-ghost hidden sm:inline-flex">
+              Edit setup
+            </Link>
+            <button
+              type="button"
+              className="btn-secondary !h-10 !px-4 !text-[13px]"
+              onClick={() => profile && refresh(profile)}
+              disabled={loading}
+            >
+              Refresh
+            </button>
+            <button type="button" className="btn-secondary !h-10 !px-4 !text-[13px]" onClick={sendEmailNow}>
+              Email
+            </button>
+            <button type="button" className="btn-primary !h-10 !px-5 !text-[13px]" onClick={queuePrint}>
+              Print
+            </button>
           </div>
-        </div>
-      ) : null}
+        }
+      />
 
-      {error ? (
-        <div className="mx-auto max-w-5xl rounded-sm border border-destructive/30 bg-white px-6 py-8">
-          <h2 className="font-display text-2xl font-semibold">Edition unavailable</h2>
-          <p className="mt-2 text-sm text-muted-foreground">{error}</p>
-          <Button className="mt-6 rounded-sm" onClick={() => profile && refresh(profile)}>
-            Try again
-          </Button>
+      <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-8">
+        <div className="no-print mb-8">
+          <p className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
+            {profile
+              ? `${profile.name} · ${profile.interests.length} interests · ${edition?.paperTitle ?? "Preparing…"}`
+              : "Loading profile…"}
+          </p>
+          {status ? <p className="mt-2 text-[13px] text-[hsl(var(--apple-blue))]">{status}</p> : null}
         </div>
-      ) : null}
 
-      {edition && !loading ? <EditionView edition={edition} /> : null}
+        {loading ? (
+          <div className="paper-sheet animate-pulse rounded-[4px] px-8 py-16">
+            <div className="mx-auto h-10 w-64 rounded-full bg-black/5" />
+            <div className="mx-auto mt-6 h-px w-full bg-black/10" />
+            <div className="mt-10 space-y-3">
+              <div className="h-4 w-3/4 rounded-full bg-black/5" />
+              <div className="h-4 w-full rounded-full bg-black/5" />
+              <div className="h-4 w-5/6 rounded-full bg-black/5" />
+            </div>
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className="surface rounded-3xl px-6 py-8">
+            <h2 className="font-display text-2xl font-semibold tracking-[-0.02em]">Edition unavailable</h2>
+            <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">{error}</p>
+            <button
+              type="button"
+              className="btn-primary mt-6"
+              onClick={() => profile && refresh(profile)}
+            >
+              Try again
+            </button>
+          </div>
+        ) : null}
+
+        {edition && !loading ? <EditionView edition={edition} /> : null}
+      </div>
     </main>
   );
 }
