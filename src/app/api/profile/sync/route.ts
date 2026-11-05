@@ -28,6 +28,9 @@ const schema = z.object({
     })
     .optional(),
   colorMode: z.enum(["bw", "color"]).default("bw"),
+  preferredFont: z
+    .enum(["georgia", "newsreader", "libre", "helvetica", "system"])
+    .optional(),
   emailTime: z.string(),
   printEnabled: z.boolean(),
   printTime: z.string(),

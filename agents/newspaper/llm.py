@@ -24,19 +24,32 @@ def _extract_json(text: str) -> dict[str, Any]:
 
 
 class LLMClient:
-    """OpenAI-compatible chat client for any smaller hosted model."""
+    """OpenAI-compatible chat client, with Anthropic Messages fallback."""
 
     def __init__(self, config: LLMConfig | None = None) -> None:
         self.config = config or LLMConfig()
 
     @property
     def ready(self) -> bool:
-        return self.config.enabled and bool(self.config.api_key)
+        # Ollama often accepts any/no key; treat enabled + base_url as enough when key blank for local.
+        if not self.config.enabled:
+            return False
+        if self.config.api_key:
+            return True
+        return "11434" in self.config.base_url or "ollama" in self.config.base_url.lower()
+
+    def _is_anthropic(self) -> bool:
+        return "anthropic.com" in self.config.base_url.lower()
 
     def chat_json(self, user_prompt: str) -> dict[str, Any]:
         if not self.ready:
             raise RuntimeError("LLM API key missing. Set LLM_API_KEY (or OPENAI_API_KEY).")
 
+        if self._is_anthropic():
+            return self._anthropic_json(user_prompt)
+        return self._openai_json(user_prompt)
+
+    def _openai_json(self, user_prompt: str) -> dict[str, Any]:
         payload = {
             "model": self.config.model,
             "temperature": 0.3,
@@ -46,26 +59,45 @@ class LLMClient:
                 {"role": "user", "content": user_prompt},
             ],
         }
-        url = f"{self.config.base_url}/chat/completions"
+        url = f"{self.config.base_url.rstrip('/')}/chat/completions"
         headers = {
-            "Authorization": f"Bearer {self.config.api_key}",
+            "Authorization": f"Bearer {self.config.api_key or 'ollama'}",
             "Content-Type": "application/json",
         }
 
-        try:
-            with httpx.Client(timeout=self.config.timeout) as client:
+        with httpx.Client(timeout=self.config.timeout) as client:
+            res = client.post(url, headers=headers, json=payload)
+            if res.status_code >= 400 and "response_format" in payload:
+                payload.pop("response_format", None)
                 res = client.post(url, headers=headers, json=payload)
-                if res.status_code >= 400 and "response_format" in payload:
-                    # Some small providers reject response_format — retry without it.
-                    payload.pop("response_format", None)
-                    res = client.post(url, headers=headers, json=payload)
-                res.raise_for_status()
-                data = res.json()
-        except httpx.HTTPError as exc:
-            raise RuntimeError(f"LLM request failed: {exc}") from exc
+            res.raise_for_status()
+            data = res.json()
 
         content = data["choices"][0]["message"]["content"]
         return _extract_json(content)
+
+    def _anthropic_json(self, user_prompt: str) -> dict[str, Any]:
+        # Native Anthropic Messages API (not OpenAI-compatible).
+        url = "https://api.anthropic.com/v1/messages"
+        headers = {
+            "x-api-key": self.config.api_key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.config.model,
+            "max_tokens": 4096,
+            "temperature": 0.3,
+            "system": SYSTEM,
+            "messages": [{"role": "user", "content": user_prompt}],
+        }
+        with httpx.Client(timeout=self.config.timeout) as client:
+            res = client.post(url, headers=headers, json=payload)
+            res.raise_for_status()
+            data = res.json()
+        parts = data.get("content") or []
+        text = "".join(p.get("text", "") for p in parts if isinstance(p, dict))
+        return _extract_json(text)
 
     def edit_edition(
         self,

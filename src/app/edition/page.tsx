@@ -109,6 +109,9 @@ export default function EditionPage() {
       <SiteHeader
         right={
           <div className="flex flex-wrap items-center justify-end gap-2">
+            <Link href="/studio" className="btn-ghost hidden sm:inline-flex">
+              Templates
+            </Link>
             <Link href="/setup" className="btn-ghost hidden sm:inline-flex">
               Edit setup
             </Link>

@@ -7,16 +7,22 @@ const schema = z.object({
   title: z.string().optional(),
   company: z.string().optional(),
   pages: z.number().int().min(1).max(12).default(4),
-  email: z.string().email().optional(),
+  font: z.enum(["georgia", "newsreader", "libre", "helvetica", "system"]).default("georgia"),
+  colorMode: z.enum(["bw", "color"]).default("color"),
+  email: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.includes("@") ? v : undefined)),
   useLlm: z.boolean().default(false),
   newsPrompt: z.string().optional(),
+  allTemplates: z.boolean().default(false),
   byok: z
     .object({
       enabled: z.boolean(),
       provider: z.string(),
-      apiKey: z.string(),
-      baseUrl: z.string(),
-      model: z.string(),
+      apiKey: z.string().optional().default(""),
+      baseUrl: z.string().optional().default("https://api.openai.com/v1"),
+      model: z.string().optional().default("gpt-4o-mini"),
     })
     .optional(),
 });
@@ -24,44 +30,59 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const body = schema.parse(await request.json());
-    const args = [
-      "-m",
-      "agents.newspaper",
-      "--template",
-      body.template,
-      "--pages",
-      String(body.pages),
-      "--max-articles",
-      "10",
-    ];
+    const args = ["-m", "agents.newspaper", "--pages", String(body.pages), "--max-articles", "12"];
+
+    if (body.allTemplates) {
+      args.push("--all-templates");
+    } else {
+      args.push("--template", body.template);
+    }
+    args.push("--font", body.font, "--color", body.colorMode);
     if (body.title) args.push("--title", body.title);
     if (body.company) args.push("--company", body.company);
     if (body.email) args.push("--email", body.email);
     if (body.newsPrompt) args.push("--prompt", body.newsPrompt);
 
     const env = { ...process.env };
-    const byokReady = Boolean(body.byok?.enabled && body.byok.apiKey);
+    const isOllama =
+      body.byok?.provider === "ollama" ||
+      (body.byok?.baseUrl || "").includes("11434") ||
+      (body.byok?.baseUrl || "").toLowerCase().includes("ollama");
+    const byokReady = Boolean(
+      body.byok?.enabled && (body.byok.apiKey?.trim() || isOllama),
+    );
     if (byokReady && body.byok) {
-      env.LLM_API_KEY = body.byok.apiKey;
-      env.LLM_BASE_URL = body.byok.baseUrl;
-      env.LLM_MODEL = body.byok.model;
-      body.useLlm = true;
+      env.LLM_API_KEY = (body.byok.apiKey || (isOllama ? "ollama" : "")).trim();
+      env.LLM_BASE_URL = (body.byok.baseUrl || "https://api.openai.com/v1").trim();
+      env.LLM_MODEL = (body.byok.model || "gpt-4o-mini").trim();
     }
-    if (!body.useLlm && !byokReady) args.push("--no-llm");
+
+    if (!body.useLlm && !byokReady) {
+      args.push("--no-llm");
+    }
 
     const { stdout, stderr, code } = await runPython(args, env);
     if (code !== 0) {
-      return NextResponse.json({ error: stderr || stdout || "Generation failed" }, { status: 500 });
+      return NextResponse.json(
+        { error: (stderr || stdout || "Generation failed").slice(0, 2000) },
+        { status: 500 },
+      );
     }
 
-    const match = stdout.split("\n").reverse().find((line) => line.startsWith("RESULT_JSON="));
-    const result = match ? JSON.parse(match.replace("RESULT_JSON=", "")) : null;
+    const results = stdout
+      .split("\n")
+      .filter((line) => line.startsWith("RESULT_JSON="))
+      .map((line) => JSON.parse(line.replace("RESULT_JSON=", "")));
+
+    const latest = results.at(-1) || null;
 
     return NextResponse.json({
       ok: true,
-      result,
-      stdout,
-      openUrl: result?.publicUrl || result?.latestUrl || "/editions/latest.html",
+      result: latest,
+      results,
+      stdout: stdout.slice(-4000),
+      openUrl: latest?.publicUrl || latest?.latestUrl || "/editions/latest.html",
+      llmUsed: Boolean(latest?.llm),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Newspaper generation failed";

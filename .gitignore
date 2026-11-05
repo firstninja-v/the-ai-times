@@ -42,6 +42,10 @@ next-env.d.ts
 # ai-times local runtime
 .ai-times/
 
+# generated dated editions (keep latest.* tracked)
+/public/editions/[0-9]*.html
+/public/editions/[0-9]*.json
+
 agents/__pycache__/
 **/__pycache__/
 *.pyc

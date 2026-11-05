@@ -67,6 +67,7 @@ export interface UserProfile {
   newsPrompt?: string;
   byok?: ByokConfig;
   colorMode: ColorMode;
+  preferredFont?: "georgia" | "newsreader" | "libre" | "helvetica" | "system";
   emailTime: string;
   printEnabled: boolean;
   printTime: string;

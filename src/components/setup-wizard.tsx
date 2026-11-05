@@ -32,11 +32,14 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
   const [baseUrl, setBaseUrl] = useState(LLM_PROVIDERS[0].baseUrl);
   const [model, setModel] = useState(LLM_PROVIDERS[0].defaultModel);
   const [colorMode, setColorMode] = useState<ColorMode>("bw");
+  const [preferredFont, setPreferredFont] = useState<
+    "georgia" | "newsreader" | "libre" | "helvetica" | "system"
+  >("georgia");
   const [emailTime, setEmailTime] = useState("06:00");
   const [printEnabled, setPrintEnabled] = useState(true);
   const [printTime, setPrintTime] = useState("06:05");
   const [breakingNews, setBreakingNews] = useState(true);
-  const [pageCount, setPageCount] = useState<"auto" | number>("auto");
+  const [pageCount, setPageCount] = useState<"auto" | number>(4);
   const [error, setError] = useState<string | null>(null);
 
   const displayName = kind === "company" ? companyName || name : name;
@@ -84,7 +87,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
       setStep(1);
       return;
     }
-    if (byokEnabled && !apiKey.trim()) {
+    if (byokEnabled && !apiKey.trim() && provider !== "ollama") {
       setError("Paste your API key or turn off Bring Your Own Key.");
       setStep(1);
       return;
@@ -106,6 +109,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
         model: model.trim() || selectedProvider.defaultModel,
       },
       colorMode,
+      preferredFont,
       emailTime,
       printEnabled,
       printTime,
@@ -132,7 +136,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
     };
 
     saveProfile(profile);
-    router.push("/edition");
+    router.push("/studio");
   }
 
   return (
@@ -308,7 +312,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
               })}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <label className="block space-y-2">
                 <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Pages</span>
                 <select
@@ -326,6 +330,24 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
                   ))}
                 </select>
               </label>
+              <label className="block space-y-2">
+                <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Font</span>
+                <select
+                  value={preferredFont}
+                  onChange={(e) =>
+                    setPreferredFont(
+                      e.target.value as "georgia" | "newsreader" | "libre" | "helvetica" | "system",
+                    )
+                  }
+                  className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none"
+                >
+                  <option value="georgia">Georgia</option>
+                  <option value="newsreader">Newsreader</option>
+                  <option value="libre">Libre Baskerville</option>
+                  <option value="helvetica">Helvetica</option>
+                  <option value="system">System UI</option>
+                </select>
+              </label>
               <div className="space-y-2">
                 <div className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Print color</div>
                 <div className="grid grid-cols-2 gap-2">
@@ -340,7 +362,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
                           : "border-black/[0.08] bg-white"
                       }`}
                     >
-                      {mode === "bw" ? "Black & white" : "Color"}
+                      {mode === "bw" ? "B&W" : "Color"}
                     </button>
                   ))}
                 </div>

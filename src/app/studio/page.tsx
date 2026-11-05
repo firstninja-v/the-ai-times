@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
-import { loadProfile } from "@/lib/storage";
-import type { ByokConfig } from "@/lib/types";
+import { LLM_PROVIDERS, type LlmProviderId } from "@/lib/llm-providers";
+import { loadProfile, saveProfile } from "@/lib/storage";
+import type { ByokConfig, ColorMode, UserProfile } from "@/lib/types";
 
 type TemplateCard = {
   id: string;
@@ -52,18 +53,35 @@ const FALLBACK: TemplateCard[] = [
   },
 ];
 
+const FONTS = [
+  { id: "georgia", label: "Georgia" },
+  { id: "newsreader", label: "Newsreader" },
+  { id: "libre", label: "Libre Baskerville" },
+  { id: "helvetica", label: "Helvetica" },
+  { id: "system", label: "System UI" },
+] as const;
+
 export default function StudioPage() {
   const [templates, setTemplates] = useState<TemplateCard[]>(FALLBACK);
   const [template, setTemplate] = useState("classic");
   const [title, setTitle] = useState("The AI Times");
   const [email, setEmail] = useState("");
-  const [newsPrompt, setNewsPrompt] = useState("");
-  const [useLlm, setUseLlm] = useState(false);
+  const [newsPrompt, setNewsPrompt] = useState(
+    "Useful morning coverage on AI, markets, and world affairs. Skip celebrity gossip.",
+  );
+  const [pages, setPages] = useState(4);
+  const [font, setFont] = useState<(typeof FONTS)[number]["id"]>("georgia");
+  const [colorMode, setColorMode] = useState<ColorMode>("bw");
+  const [byokEnabled, setByokEnabled] = useState(false);
+  const [provider, setProvider] = useState<LlmProviderId>("openai");
+  const [apiKey, setApiKey] = useState("");
+  const [baseUrl, setBaseUrl] = useState(LLM_PROVIDERS[0].baseUrl);
+  const [model, setModel] = useState(LLM_PROVIDERS[0].defaultModel);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [openUrl, setOpenUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("/templates/classic/preview.html");
+  const [generatedUrls, setGeneratedUrls] = useState<string[]>([]);
   const [previewBroken, setPreviewBroken] = useState<Record<string, boolean>>({});
-  const [byok, setByok] = useState<ByokConfig | undefined>(undefined);
 
   const selected = useMemo(
     () => templates.find((t) => t.id === template) ?? templates[0],
@@ -77,13 +95,21 @@ export default function StudioPage() {
         profile.customTitle ||
           (profile.company?.companyName
             ? `The ${profile.company.companyName} Times`
-            : `The ${profile.name} Times`),
+            : profile.name
+              ? `The ${profile.name} Times`
+              : "The AI Times"),
       );
       setEmail(profile.email || "");
-      setNewsPrompt(profile.newsPrompt || "");
-      if (profile.byok?.enabled) {
-        setByok(profile.byok);
-        setUseLlm(true);
+      setNewsPrompt(profile.newsPrompt || newsPrompt);
+      if (typeof profile.pageCount === "number") setPages(profile.pageCount);
+      setColorMode(profile.colorMode || "bw");
+      if (profile.preferredFont) setFont(profile.preferredFont);
+      if (profile.byok) {
+        setByokEnabled(profile.byok.enabled);
+        setProvider(profile.byok.provider);
+        setApiKey(profile.byok.apiKey || "");
+        setBaseUrl(profile.byok.baseUrl || LLM_PROVIDERS[0].baseUrl);
+        setModel(profile.byok.model || LLM_PROVIDERS[0].defaultModel);
       }
     }
     void fetch("/api/newspaper/templates")
@@ -91,19 +117,76 @@ export default function StudioPage() {
       .then((data) => {
         if (Array.isArray(data.templates) && data.templates.length) {
           setTemplates(data.templates);
-          setTemplate(data.templates[0].id);
+          const first = data.templates[0];
+          setTemplate(first.id);
+          if (first.previewHtml) setPreviewUrl(first.previewHtml);
         }
       })
-      .catch(() => {
-        // keep fallback cards
-      });
+      .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function generate() {
+  function selectTemplate(id: string) {
+    setTemplate(id);
+    const card = templates.find((t) => t.id === id);
+    if (card?.previewHtml) setPreviewUrl(`${card.previewHtml}?t=${Date.now()}`);
+  }
+
+  function selectProvider(id: LlmProviderId) {
+    const next = LLM_PROVIDERS.find((p) => p.id === id)!;
+    setProvider(id);
+    setBaseUrl(next.baseUrl);
+    setModel(next.defaultModel);
+  }
+
+  function persistByok() {
+    const profile = loadProfile();
+    const byok: ByokConfig = {
+      enabled: byokEnabled,
+      provider,
+      apiKey: apiKey.trim(),
+      baseUrl: baseUrl.trim(),
+      model: model.trim(),
+    };
+    if (!profile) {
+      const seed: UserProfile = {
+        kind: "personal",
+        name: "Reader",
+        email: email || "reader@theaitimes.local",
+        titleStyle: "the-times",
+        interests: ["technology", "world", "business"],
+        newsPrompt,
+        byok,
+        colorMode,
+        preferredFont: font,
+        emailTime: "06:00",
+        printEnabled: true,
+        printTime: "06:05",
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        pageCount: pages,
+        breakingNews: true,
+        createdAt: new Date().toISOString(),
+      };
+      saveProfile(seed);
+      return byok;
+    }
+    saveProfile({
+      ...profile,
+      email: email || profile.email,
+      newsPrompt,
+      colorMode,
+      preferredFont: font,
+      pageCount: pages,
+      byok,
+    });
+    return byok;
+  }
+
+  async function generate(allTemplates = false) {
     setBusy(true);
-    setStatus("Running Python newspaper studio…");
-    setOpenUrl(null);
+    setStatus(allTemplates ? "Generating all templates with Python…" : "Generating newspaper…");
     try {
+      const byok = persistByok();
       const res = await fetch("/api/newspaper/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -111,20 +194,38 @@ export default function StudioPage() {
           template,
           title,
           email: email || undefined,
-          useLlm,
-          pages: 4,
+          useLlm:
+            byokEnabled &&
+            (Boolean(apiKey.trim()) || provider === "ollama"),
+          pages,
+          font,
+          colorMode,
           newsPrompt: newsPrompt || undefined,
-          byok: byok?.enabled ? byok : undefined,
+          allTemplates,
+          byok: byokEnabled
+            ? {
+                enabled: true,
+                provider,
+                apiKey: apiKey.trim() || (provider === "ollama" ? "ollama" : ""),
+                baseUrl: baseUrl.trim(),
+                model: model.trim(),
+              }
+            : undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed");
-      const url = data.openUrl || data.result?.publicUrl || "/editions/latest.html";
-      setOpenUrl(url);
+
+      const urls = (data.results || [])
+        .map((r: { publicUrl?: string }) => r.publicUrl)
+        .filter(Boolean) as string[];
+      const openUrl = data.openUrl || urls.at(-1) || "/editions/latest.html";
+      setGeneratedUrls(urls.length ? urls : [openUrl]);
+      setPreviewUrl(`${openUrl}?t=${Date.now()}`);
       setStatus(
-        email
-          ? `Edition ready. Email ${data.result?.email?.mode === "smtp" ? "sent" : "previewed locally"}.`
-          : "Edition ready — open the full paper below.",
+        `${allTemplates ? `Generated ${urls.length || 5} templates` : "Edition ready"}${
+          data.llmUsed ? " · LLM used" : " · offline desk editor"
+        }. Preview updated below.`,
       );
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Failed");
@@ -138,8 +239,8 @@ export default function StudioPage() {
       <SiteHeader
         right={
           <div className="flex items-center gap-2">
-            <Link href="/edition" className="btn-ghost">
-              Live edition
+            <Link href="/setup" className="btn-ghost">
+              Setup
             </Link>
             <Link href="/editions/latest.html" className="btn-secondary !h-10 !px-4 !text-[13px]">
               Latest paper
@@ -148,23 +249,19 @@ export default function StudioPage() {
         }
       />
 
-      <div className="mx-auto max-w-6xl px-5 pt-10 sm:px-8">
+      <div className="mx-auto max-w-7xl px-5 pt-8 sm:px-8">
         <div className="max-w-3xl">
           <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[hsl(var(--apple-blue))]">
             Newspaper studio
           </p>
-          <h1 className="font-display mt-3 text-[clamp(2.6rem,6vw,4rem)] font-semibold tracking-[-0.035em]">
-            All templates, ready to print
+          <h1 className="font-display mt-3 text-[clamp(2.4rem,5vw,3.6rem)] font-semibold tracking-[-0.035em]">
+            Pick a template. Set pages, font, color. Enter your API key. Generate.
           </h1>
-          <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-            Five production newspaper designs generated by the Python studio — with photography,
-            multi-page layouts, optional small-model editing, and SMTP delivery.
-          </p>
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="mt-8 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-5">
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               {templates.map((item) => {
                 const active = template === item.id;
                 const broken = previewBroken[item.id];
@@ -172,180 +269,251 @@ export default function StudioPage() {
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setTemplate(item.id)}
-                    className={`overflow-hidden rounded-[22px] border text-left transition ${
+                    onClick={() => selectTemplate(item.id)}
+                    className={`overflow-hidden rounded-[20px] border bg-white text-left transition ${
                       active
                         ? "border-[rgba(0,113,227,0.55)] shadow-[0_0_0_3px_rgba(0,113,227,0.12)]"
-                        : "border-black/[0.08] hover:border-black/20"
-                    } bg-white`}
+                        : "border-black/[0.08]"
+                    }`}
                   >
-                    <div className="relative aspect-[4/5] overflow-hidden bg-[#eceae4]">
+                    <div className="relative aspect-[4/5] bg-[#eceae4]">
                       {!broken && item.previewImage ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={`${item.previewImage}?v=1`}
-                          alt={`${item.name} preview`}
+                          src={`${item.previewImage}?v=2`}
+                          alt={item.name}
                           className="h-full w-full object-cover object-top"
-                          onError={() =>
-                            setPreviewBroken((prev) => ({ ...prev, [item.id]: true }))
-                          }
+                          onError={() => setPreviewBroken((p) => ({ ...p, [item.id]: true }))}
                         />
                       ) : (
-                        <div className="flex h-full flex-col justify-between p-5">
-                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--masthead))]">
-                            Preview pending
-                          </div>
-                          <div>
-                            <div className="font-display text-2xl font-semibold">{item.name}</div>
-                            <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
-                              Run `npm run agent:paper:previews`
-                            </p>
-                          </div>
+                        <div className="flex h-full items-end p-4 font-display text-xl font-semibold">
+                          {item.name}
                         </div>
                       )}
                       {active ? (
-                        <div className="absolute left-3 top-3 rounded-full bg-[hsl(var(--apple-blue))] px-3 py-1 text-[11px] font-semibold text-white">
+                        <span className="absolute left-3 top-3 rounded-full bg-[hsl(var(--apple-blue))] px-3 py-1 text-[11px] font-semibold text-white">
                           Selected
-                        </div>
+                        </span>
                       ) : null}
                     </div>
-                    <div className="border-t border-black/[0.06] p-4">
-                      <div className="font-display text-[1.15rem] font-semibold tracking-[-0.02em]">
-                        {item.name}
-                      </div>
-                      <p className="mt-1 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                    <div className="border-t border-black/[0.06] p-3">
+                      <div className="font-display text-[1.05rem] font-semibold">{item.name}</div>
+                      <p className="mt-1 text-[12px] text-[hsl(var(--muted-foreground))]">
                         {item.description}
                       </p>
-                      {item.previewHtml ? (
-                        <a
-                          href={item.previewHtml}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="mt-3 inline-flex text-[13px] font-semibold text-[hsl(var(--apple-blue))]"
-                        >
-                          Open full preview →
-                        </a>
-                      ) : null}
                     </div>
                   </button>
                 );
               })}
             </div>
+
+            <div className="surface rounded-[24px] p-5">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display text-xl font-semibold">Your API key (BYOK)</h2>
+                <label className="flex items-center gap-2 text-[13px] font-medium">
+                  <input
+                    type="checkbox"
+                    checked={byokEnabled}
+                    onChange={(e) => setByokEnabled(e.target.checked)}
+                    className="h-4 w-4 accent-[hsl(var(--apple-blue))]"
+                  />
+                  Enable
+                </label>
+              </div>
+              <p className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
+                Paste OpenAI / Claude / Gemini / Groq / Ollama key. Used by the Python generator.
+              </p>
+              <div className={`mt-4 space-y-3 ${byokEnabled ? "" : "opacity-45"}`}>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {LLM_PROVIDERS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      disabled={!byokEnabled}
+                      onClick={() => selectProvider(item.id)}
+                      className={`rounded-xl border px-2 py-2 text-[12px] font-semibold ${
+                        provider === item.id
+                          ? "border-[rgba(0,113,227,0.5)] bg-[rgba(0,113,227,0.06)]"
+                          : "border-black/[0.08] bg-white"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="password"
+                  disabled={!byokEnabled}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Paste API key"
+                  className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3 text-[14px] outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))] disabled:opacity-60"
+                />
+                <input
+                  disabled={!byokEnabled}
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
+                  placeholder="Base URL"
+                  className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3 text-[13px] outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))] disabled:opacity-60"
+                />
+                <input
+                  disabled={!byokEnabled}
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="Model"
+                  className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3 text-[14px] outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))] disabled:opacity-60"
+                />
+              </div>
+            </div>
           </div>
 
-          <aside className="lg:sticky lg:top-20 lg:self-start">
-            <div className="surface rounded-[28px] p-6">
+          <div className="space-y-4">
+            <div className="surface rounded-[24px] p-5">
               <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[hsl(var(--muted-foreground))]">
-                Generate
+                Controls · {selected?.name}
               </div>
-              <h2 className="font-display mt-2 text-3xl font-semibold tracking-[-0.03em]">
-                {selected?.name}
-              </h2>
-              <p className="mt-2 text-[14px] text-[hsl(var(--muted-foreground))]">
-                {selected?.description}
-              </p>
-
-              <div className="mt-6 space-y-4">
-                <label className="block space-y-2">
-                  <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
-                    Masthead
-                  </span>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className="block space-y-1.5 sm:col-span-2">
+                  <span className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">Masthead</span>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+                    className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
                   />
                 </label>
-                <label className="block space-y-2">
-                  <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
-                    Email to (optional)
-                  </span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
-                  />
-                </label>
-                <label className="block space-y-2">
-                  <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
+                <label className="block space-y-1.5 sm:col-span-2">
+                  <span className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
                     News prompt
                   </span>
                   <textarea
                     value={newsPrompt}
                     onChange={(e) => setNewsPrompt(e.target.value)}
                     rows={3}
-                    placeholder="What should today’s paper cover?"
-                    className="w-full rounded-2xl border border-black/[0.08] bg-white px-4 py-3 text-[14px] outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+                    className="w-full rounded-xl border border-black/[0.08] bg-white px-3 py-2 text-[14px] outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
                   />
                 </label>
-                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-black/[0.08] bg-white px-4 py-3">
-                  <div>
-                    <div className="text-[14px] font-medium">Use BYOK / small model</div>
-                    <div className="text-[12px] text-[hsl(var(--muted-foreground))]">
-                      {byok?.enabled
-                        ? `${byok.provider} · ${byok.model}`
-                        : "Set key in Setup → Interests"}
-                    </div>
+                <label className="block space-y-1.5">
+                  <span className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">Pages</span>
+                  <select
+                    value={pages}
+                    onChange={(e) => setPages(Number(e.target.value))}
+                    className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3 outline-none"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 8].map((n) => (
+                      <option key={n} value={n}>
+                        {n} pages
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">Font</span>
+                  <select
+                    value={font}
+                    onChange={(e) => setFont(e.target.value as (typeof FONTS)[number]["id"])}
+                    className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3 outline-none"
+                  >
+                    {FONTS.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <span className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
+                    Print color
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["bw", "color"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setColorMode(mode)}
+                        className={`h-11 rounded-xl border text-[14px] font-medium ${
+                          colorMode === mode
+                            ? "border-transparent bg-[hsl(var(--ink))] text-white"
+                            : "border-black/[0.08] bg-white"
+                        }`}
+                      >
+                        {mode === "bw" ? "Black & white" : "Color"}
+                      </button>
+                    ))}
                   </div>
+                </div>
+                <label className="block space-y-1.5 sm:col-span-2">
+                  <span className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
+                    Email (optional)
+                  </span>
                   <input
-                    type="checkbox"
-                    checked={useLlm}
-                    onChange={(e) => setUseLlm(e.target.checked)}
-                    className="h-5 w-5 accent-[hsl(var(--apple-blue))]"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
                   />
                 </label>
               </div>
 
-              <button
-                type="button"
-                className="btn-primary mt-6 w-full"
-                disabled={busy}
-                onClick={generate}
-              >
-                {busy ? "Generating with Python…" : `Generate ${selected?.id} paper`}
-              </button>
-
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={busy}
+                  onClick={() => generate(false)}
+                >
+                  {busy ? "Generating…" : `Generate ${selected?.id} paper`}
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={busy}
+                  onClick={() => generate(true)}
+                >
+                  Generate all templates
+                </button>
+              </div>
               {status ? (
-                <p className="mt-4 text-[14px] leading-relaxed text-[hsl(var(--apple-blue))]">
-                  {status}
-                </p>
+                <p className="mt-3 text-[13px] leading-relaxed text-[hsl(var(--apple-blue))]">{status}</p>
               ) : null}
-
-              {openUrl ? (
-                <a
-                  href={openUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-secondary mt-4 w-full"
-                >
-                  Open generated newspaper
-                </a>
-              ) : null}
-
-              {selected?.previewHtml ? (
-                <a
-                  href={selected.previewHtml}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 block text-center text-[13px] font-semibold text-[hsl(var(--muted-foreground))]"
-                >
-                  Preview this template without generating
-                </a>
+              {generatedUrls.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {generatedUrls.map((url) => (
+                    <button
+                      key={url}
+                      type="button"
+                      className="rounded-full border border-black/[0.08] bg-white px-3 py-1 text-[12px] font-medium"
+                      onClick={() => setPreviewUrl(`${url}?t=${Date.now()}`)}
+                    >
+                      Open {url.split("/").pop()}
+                    </button>
+                  ))}
+                </div>
               ) : null}
             </div>
 
-            <div className="mt-4 rounded-[22px] border border-black/[0.06] bg-white/70 p-5 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-              <div className="font-medium text-[hsl(var(--ink))]">Python studio commands</div>
-              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap font-mono text-[12px] text-[hsl(var(--ink))]">
-{`npm run agent:paper:previews
-npm run agent:paper -- --template ${selected?.id}
-npm run agent:paper -- --all-templates`}
-              </pre>
+            <div className="overflow-hidden rounded-[24px] border border-black/[0.08] bg-white shadow-[0_20px_50px_-30px_rgba(0,0,0,0.35)]">
+              <div className="flex items-center justify-between border-b border-black/[0.06] px-4 py-3">
+                <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[hsl(var(--muted-foreground))]">
+                  Live preview
+                </div>
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[12px] font-semibold text-[hsl(var(--apple-blue))]"
+                >
+                  Open full size →
+                </a>
+              </div>
+              <iframe
+                key={previewUrl}
+                title="Newspaper preview"
+                src={previewUrl}
+                className="h-[72vh] w-full bg-[#f4f1ea]"
+              />
             </div>
-          </aside>
+          </div>
         </div>
       </div>
     </main>

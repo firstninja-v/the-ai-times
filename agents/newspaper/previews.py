@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .config import ROOT, TEMPLATES_META
+from .design import apply_design
 from .images import attach_images
 from .models import EditionPlan
 from .render import render_html, write_edition
@@ -40,6 +41,7 @@ def write_preview_html(template: str, paper_title: str = "The AI Times") -> Path
         raise ValueError(f"Unknown template: {template}")
     plan = build_preview_plan(template, paper_title=paper_title)
     html = render_html(plan, template_id=template, pages=3)
+    html = apply_design(html, font="georgia", color_mode="color", pages=3)
     out_dir = PUBLIC_PREVIEWS / template
     out_dir.mkdir(parents=True, exist_ok=True)
     html_path = write_edition(html, out_dir / "preview.html")

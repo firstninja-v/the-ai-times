@@ -21,7 +21,18 @@ npm run dev
 
 Open [http://127.0.0.1:43123](http://127.0.0.1:43123).
 
-### Designed newspaper PDFs/HTML (Python studio)
+### Design studio (templates + BYOK)
+
+Open [/studio](http://127.0.0.1:43123/studio):
+
+1. Click a template card — live HTML preview updates immediately
+2. Paste your API key (OpenAI / Claude / Gemini / Groq / Ollama)
+3. Choose **pages**, **font**, and **black & white vs color**
+4. **Generate** one paper or **Generate all templates**
+
+The Next.js API passes those options + your key into the Python generator (`agents/newspaper`), which writes readable image-rich HTML under `public/editions/`.
+
+### Designed newspaper HTML (CLI)
 
 Ready-made templates: `classic`, `modern`, `compact`, `broadsheet`, `magazine`.
 
@@ -30,7 +41,7 @@ Ready-made templates: `classic`, `modern`, `compact`, `broadsheet`, `magazine`.
 npm run agent:paper -- --list-templates
 
 # generate today (offline desk editor if no key)
-npm run agent:paper -- --template modern --pages 4
+npm run agent:paper -- --template modern --pages 4 --font newsreader --color bw
 
 # use any small OpenAI-compatible model
 export LLM_API_KEY=sk-...
@@ -40,9 +51,12 @@ npm run agent:paper -- --template classic --email you@example.com
 
 # render every template
 npm run agent:paper -- --all-templates --no-llm
+
+# refresh visual previews for the studio gallery
+npm run agent:paper:previews
 ```
 
-Editions land in `.ai-times/editions/`. Copy `agents/.env.example` for LLM + SMTP.
+Editions land in `.ai-times/editions/` and `public/editions/`. Copy `agents/.env.example` for LLM + SMTP.
 
 ### Always-on agents (keep running)
 

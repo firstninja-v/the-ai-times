@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .config import EDITIONS, StudioConfig, TEMPLATES_META
+from .design import FONTS, apply_design
 from .emailer import send_edition_email
 from .fetch import collect_articles
 from .images import attach_images
@@ -65,15 +66,21 @@ def build_plan(
             article.score += sum(1.5 for t in tokens if t in blob)
 
     client = LLMClient(config.llm)
+    edited = None
+    llm_used = False
     if use_llm and client.ready:
         print(f"[studio] LLM edit via {config.llm.model} @ {config.llm.base_url}")
-        edited = client.edit_edition(
-            paper_title=paper_title,
-            date_label=date_label,
-            articles=articles,
-            company=company or news_prompt,
-        )
-    else:
+        try:
+            edited = client.edit_edition(
+                paper_title=paper_title,
+                date_label=date_label,
+                articles=articles,
+                company=company or news_prompt,
+            )
+            llm_used = True
+        except Exception as exc:  # noqa: BLE001
+            print(f"[studio] LLM failed ({exc}) — falling back to offline desk editor")
+    if edited is None:
         if use_llm and not client.ready:
             print("[studio] LLM_API_KEY missing — using offline desk editor")
         edited = heuristic_edit(
@@ -86,7 +93,7 @@ def build_plan(
     ordered, meta = _apply_edits(articles, edited)
     ordered = attach_images(ordered, meta["image_queries"])
 
-    return EditionPlan(
+    plan = EditionPlan(
         paper_title=paper_title,
         date_label=date_label,
         kicker=edited.get("kicker") or "THE AI TIMES",
@@ -96,6 +103,8 @@ def build_plan(
         articles=ordered,
         template=template,
     )
+    plan._llm_used = llm_used  # type: ignore[attr-defined]
+    return plan
 
 
 def generate_edition(
@@ -109,12 +118,18 @@ def generate_edition(
     email_to: str | None = None,
     out_dir: Path | None = None,
     news_prompt: str | None = None,
+    font: str = "georgia",
+    color_mode: str = "color",
 ) -> dict:
     config = StudioConfig()
     template = template or config.default_template
     paper_title = paper_title or config.paper_title
     pages = pages or config.pages
     max_articles = max_articles or config.max_articles
+    if font not in FONTS:
+        font = "georgia"
+    if color_mode not in {"bw", "color"}:
+        color_mode = "color"
 
     plan = build_plan(
         paper_title=paper_title,
@@ -126,6 +141,7 @@ def generate_edition(
         news_prompt=news_prompt,
     )
     html = render_html(plan, template_id=template, pages=pages)
+    html = apply_design(html, font=font, color_mode=color_mode, pages=pages)
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     out_dir = out_dir or EDITIONS
@@ -167,7 +183,10 @@ def generate_edition(
         "template": template,
         "paper_title": paper_title,
         "articles": len(plan.articles),
-        "llm": bool(use_llm and config.llm.enabled),
+        "pages": pages,
+        "font": font,
+        "color_mode": color_mode,
+        "llm": bool(getattr(plan, "_llm_used", False)),
     }
 
     if email_to:
@@ -194,6 +213,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-llm", action="store_true", help="Skip model calls; use offline editor")
     parser.add_argument("--email", default=None, help="Send finished edition to this address")
     parser.add_argument("--prompt", default=None, help="Natural-language news desk prompt")
+    parser.add_argument("--font", default="georgia", choices=sorted(FONTS.keys()))
+    parser.add_argument("--color", default="color", choices=["bw", "color"])
     parser.add_argument("--all-templates", action="store_true", help="Render every ready-made template")
     args = parser.parse_args(argv)
 
@@ -213,6 +234,8 @@ def main(argv: list[str] | None = None) -> int:
             use_llm=not args.no_llm,
             email_to=args.email if template == templates[-1] else None,
             news_prompt=args.prompt,
+            font=args.font,
+            color_mode=args.color,
         )
         print(json.dumps(result, indent=2))
     return 0
