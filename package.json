@@ -11,6 +11,8 @@
     "print-agent": "node scripts/print-agent.mjs",
     "agent:news": "python3 agents/news_agent.py",
     "agent:print": "python3 agents/print_daemon.py",
+    "agent:morning": "python3 agents/morning_daemon.py",
+    "agent:morning:once": "python3 agents/morning_daemon.py --once",
     "agent:paper": "python3 -m agents.newspaper",
     "agent:paper:daily": "python3 -m agents.newspaper.daily",
     "agent:paper:previews": "python3 -m agents.newspaper.previews --all",

@@ -54,6 +54,7 @@ def _article_view(article: Article, section: str) -> dict:
 
 
 def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
+    """Pack articles densely so A4 pages stay full instead of sparse."""
     articles = plan.articles
     if not articles:
         return [PageView(1, None, {}, [], [])]
@@ -68,10 +69,14 @@ def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
         section = section_for.get(article.id) or getattr(article, "_section", None) or article.category.title()
         views.append(_article_view(article, section))
 
-    pages = max(1, min(pages, max(1, len(views))))
+    # Aim for ~6–8 stories per A4 page (plus lead on page 1).
+    per_page = 7
+    needed = max(1, (len(views) + per_page - 1) // per_page)
+    pages = max(1, min(pages, needed))
+
     lead = views[0]
     rest = views[1:]
-    # chunk rest across pages; page 1 keeps lead + first chunk
+
     if pages == 1:
         groups: dict[str, list] = defaultdict(list)
         for item in rest:
@@ -86,16 +91,35 @@ def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
             )
         ]
 
-    chunk_size = max(1, (len(rest) + pages - 1) // pages)
+    # Fill page 1 heavier, then pack remaining pages evenly but densely.
+    page1_count = min(len(rest), max(per_page, (len(rest) + pages - 1) // pages + 1))
+    chunks: list[list] = [rest[:page1_count]]
+    remaining = rest[page1_count:]
+    leftover_pages = pages - 1
+    if leftover_pages and remaining:
+        size = max(per_page - 1, (len(remaining) + leftover_pages - 1) // leftover_pages)
+        for i in range(leftover_pages):
+            chunks.append(remaining[i * size : (i + 1) * size])
+    elif leftover_pages:
+        chunks.extend([[] for _ in range(leftover_pages)])
+
+    # Drop empty trailing pages.
+    while len(chunks) > 1 and not chunks[-1]:
+        chunks.pop()
+
     out: list[PageView] = []
-    for i in range(pages):
-        chunk = rest[i * chunk_size : (i + 1) * chunk_size]
+    for i, chunk in enumerate(chunks):
         groups = defaultdict(list)
         if i == 0:
             side = chunk[:2]
             body = chunk[2:]
             for item in body:
                 groups[item["section"]].append(item)
+            # If body empty, still put side stories into groups so page isn't blank below lead.
+            if not body and side:
+                for item in side:
+                    groups[item["section"]].append(item)
+                side = side[:2]
             out.append(
                 PageView(
                     number=1,
@@ -108,6 +132,7 @@ def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
         else:
             page_lead = chunk[0] if chunk else None
             body = chunk[1:] if chunk else []
+            side = body[:2]
             for item in body:
                 groups[item["section"]].append(item)
             out.append(
@@ -115,7 +140,7 @@ def paginate(plan: EditionPlan, pages: int = 4) -> list[PageView]:
                     number=i + 1,
                     lead=page_lead,
                     groups=dict(groups),
-                    side_features=[],
+                    side_features=side,
                     magazine_items=chunk,
                 )
             )

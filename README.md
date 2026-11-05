@@ -64,12 +64,20 @@ Editions land in `.ai-times/editions/` and `public/editions/`. Copy `agents/.env
 # Terminal A — continuous Scrapling + wire collection
 npm run agent:news
 
-# Terminal B — continuous printer discovery + scheduled auto-print
+# Terminal B — morning agent: generate A4 paper → email → print on schedule
+npm run agent:morning
+
+# Terminal C — printer discovery + scheduled auto-print fallback
 npm run agent:print
 
-# Terminal C — optional daily designed paper (cron this)
+# Smoke test morning pipeline once (generate + mock email + PDF/HTML print file)
+npm run agent:morning:once
+
+# One-shot daily paper (cron-friendly)
 npm run agent:paper:daily
 ```
+
+Papers render at **A4** (`210mm × 297mm`) with dense multi-column layouts.
 
 Optional env:
 

@@ -112,7 +112,7 @@ def generate_edition(
     template: str = "classic",
     paper_title: str | None = None,
     pages: int = 4,
-    max_articles: int = 12,
+    max_articles: int = 18,
     company: str | None = None,
     use_llm: bool = True,
     email_to: str | None = None,
@@ -209,7 +209,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--title", default=None, help="Masthead / paper title")
     parser.add_argument("--company", default=None, help="Company focus keywords/name")
     parser.add_argument("--pages", type=int, default=4)
-    parser.add_argument("--max-articles", type=int, default=12)
+    parser.add_argument("--max-articles", type=int, default=18)
     parser.add_argument("--no-llm", action="store_true", help="Skip model calls; use offline editor")
     parser.add_argument("--email", default=None, help="Send finished edition to this address")
     parser.add_argument("--prompt", default=None, help="Natural-language news desk prompt")

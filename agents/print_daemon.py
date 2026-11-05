@@ -119,7 +119,7 @@ def sync_printer_registry() -> list[dict]:
             **printer,
             "settings": prev.get("settings")
             or {
-                "paperSize": "Letter",
+                "paperSize": "A4",
                 "colorMode": "bw",
                 "duplex": False,
                 "copies": 1,
@@ -202,10 +202,12 @@ def render_html(edition: dict, settings: dict) -> str:
             f"<div style='text-align:center;color:#666;margin:8px 0 18px'>{escape(edition.get('dateLabel',''))} · Page {page.get('number')}</div>"
             f"{''.join(sections_html)}</section>"
         )
-    paper = settings.get("paperSize", "Letter")
+    paper = settings.get("paperSize", "A4")
     return (
         "<!doctype html><html><head><meta charset='utf-8'/>"
-        f"<style>@page{{size:{paper};margin:12mm}} body{{margin:0;{color_filter}}}</style>"
+        f"<style>@page{{size:{paper} portrait;margin:10mm}} "
+        "body{margin:0;font:10.5pt/1.35 Georgia,serif}"
+        f"{color_filter}</style>"
         "</head><body>" + "".join(pages) + "</body></html>"
     )
 
@@ -228,7 +230,7 @@ def send_to_printer(html_path: Path, printer: dict, settings: dict) -> str:
             cmd += ["-o", "sides=two-sided-long-edge"]
         if settings.get("colorMode") == "bw":
             cmd += ["-o", "ColorModel=Gray"]
-        cmd += ["-o", f"media={settings.get('paperSize', 'Letter')}", str(html_path)]
+        cmd += ["-o", f"media={settings.get('paperSize', 'A4')}", str(html_path)]
         subprocess.run(cmd, check=False)
         return "cups"
     if driver == "ipp" and printer.get("uri") and shutil.which("lp"):

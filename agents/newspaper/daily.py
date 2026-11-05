@@ -23,6 +23,7 @@ def run() -> None:
         template=template,
         paper_title=title,
         pages=pages,
+        max_articles=max(14, pages * 5),
         company=company,
         use_llm=use_llm,
         email_to=email,

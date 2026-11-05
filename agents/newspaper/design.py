@@ -40,8 +40,13 @@ def apply_design(html: str, *, font: str = "georgia", color_mode: str = "color",
     override = f"""
 {imports}<style id="ait-design-overrides">
 {page_hint}
-body, .page, .summary, p, h1, h2, h3 {{
+@page {{ size: A4 portrait; margin: 10mm; }}
+body, .page, .summary, p, h1, h2, h3, h4 {{
   font-family: {font_meta["stack"]} !important;
+}}
+.page {{
+  width: 210mm !important;
+  min-height: 297mm !important;
 }}
 {grayscale}
 </style>

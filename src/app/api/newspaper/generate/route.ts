@@ -30,7 +30,15 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const body = schema.parse(await request.json());
-    const args = ["-m", "agents.newspaper", "--pages", String(body.pages), "--max-articles", "12"];
+    const maxArticles = Math.max(14, body.pages * 5);
+    const args = [
+      "-m",
+      "agents.newspaper",
+      "--pages",
+      String(body.pages),
+      "--max-articles",
+      String(maxArticles),
+    ];
 
     if (body.allTemplates) {
       args.push("--all-templates");
