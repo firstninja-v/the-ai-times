@@ -10,6 +10,14 @@ export type PaperTitleStyle =
 
 export type PaperKind = "personal" | "company";
 
+export type LlmProviderId =
+  | "openai"
+  | "anthropic"
+  | "google"
+  | "groq"
+  | "ollama"
+  | "custom";
+
 export interface CompanyInfo {
   companyName: string;
   industry?: string;
@@ -17,6 +25,14 @@ export interface CompanyInfo {
   competitors?: string[];
   pressUrls?: string[];
   website?: string;
+}
+
+export interface ByokConfig {
+  enabled: boolean;
+  provider: LlmProviderId;
+  apiKey: string;
+  baseUrl: string;
+  model: string;
 }
 
 export interface PrinterSettings {
@@ -48,6 +64,8 @@ export interface UserProfile {
   titleStyle: PaperTitleStyle;
   customTitle?: string;
   interests: string[];
+  newsPrompt?: string;
+  byok?: ByokConfig;
   colorMode: ColorMode;
   emailTime: string;
   printEnabled: boolean;

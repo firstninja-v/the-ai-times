@@ -17,6 +17,16 @@ const schema = z.object({
   ]),
   customTitle: z.string().optional(),
   interests: z.array(z.string()).default([]),
+  newsPrompt: z.string().optional(),
+  byok: z
+    .object({
+      enabled: z.boolean(),
+      provider: z.enum(["openai", "anthropic", "google", "groq", "ollama", "custom"]),
+      apiKey: z.string(),
+      baseUrl: z.string(),
+      model: z.string(),
+    })
+    .optional(),
   colorMode: z.enum(["bw", "color"]).default("bw"),
   emailTime: z.string(),
   printEnabled: z.boolean(),

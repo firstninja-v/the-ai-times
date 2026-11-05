@@ -18,6 +18,7 @@ const bodySchema = z.object({
   interests: z.array(z.string()).default([]),
   colorMode: z.enum(["bw", "color"]),
   pageCount: z.union([z.literal("auto"), z.number().int().min(1).max(12)]).default("auto"),
+  newsPrompt: z.string().optional(),
   company: z
     .object({
       companyName: z.string(),

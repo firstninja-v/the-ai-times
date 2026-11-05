@@ -9,6 +9,16 @@ const schema = z.object({
   pages: z.number().int().min(1).max(12).default(4),
   email: z.string().email().optional(),
   useLlm: z.boolean().default(false),
+  newsPrompt: z.string().optional(),
+  byok: z
+    .object({
+      enabled: z.boolean(),
+      provider: z.string(),
+      apiKey: z.string(),
+      baseUrl: z.string(),
+      model: z.string(),
+    })
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -27,9 +37,19 @@ export async function POST(request: Request) {
     if (body.title) args.push("--title", body.title);
     if (body.company) args.push("--company", body.company);
     if (body.email) args.push("--email", body.email);
-    if (!body.useLlm) args.push("--no-llm");
+    if (body.newsPrompt) args.push("--prompt", body.newsPrompt);
 
-    const { stdout, stderr, code } = await runPython(args);
+    const env = { ...process.env };
+    const byokReady = Boolean(body.byok?.enabled && body.byok.apiKey);
+    if (byokReady && body.byok) {
+      env.LLM_API_KEY = body.byok.apiKey;
+      env.LLM_BASE_URL = body.byok.baseUrl;
+      env.LLM_MODEL = body.byok.model;
+      body.useLlm = true;
+    }
+    if (!body.useLlm && !byokReady) args.push("--no-llm");
+
+    const { stdout, stderr, code } = await runPython(args, env);
     if (code !== 0) {
       return NextResponse.json({ error: stderr || stdout || "Generation failed" }, { status: 500 });
     }
@@ -49,11 +69,11 @@ export async function POST(request: Request) {
   }
 }
 
-function runPython(args: string[]) {
+function runPython(args: string[], env: NodeJS.ProcessEnv) {
   return new Promise<{ stdout: string; stderr: string; code: number }>((resolve) => {
     const child = spawn("python3", args, {
       cwd: process.cwd(),
-      env: process.env,
+      env,
     });
     let stdout = "";
     let stderr = "";

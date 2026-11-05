@@ -50,11 +50,19 @@ def build_plan(
     company: str | None,
     use_llm: bool,
     config: StudioConfig,
+    news_prompt: str | None = None,
 ) -> EditionPlan:
     date_label = datetime.now().strftime("%A, %B %d, %Y").replace(" 0", " ")
     articles = collect_articles(limit=max_articles)
     if not articles:
         raise RuntimeError("No articles available. Run npm run agent:news first or check network feeds.")
+
+    # Soft-rank by prompt tokens before LLM edit.
+    if news_prompt:
+        tokens = [t for t in news_prompt.lower().replace(",", " ").split() if len(t) > 3]
+        for article in articles:
+            blob = f"{article.title} {article.summary}".lower()
+            article.score += sum(1.5 for t in tokens if t in blob)
 
     client = LLMClient(config.llm)
     if use_llm and client.ready:
@@ -63,7 +71,7 @@ def build_plan(
             paper_title=paper_title,
             date_label=date_label,
             articles=articles,
-            company=company,
+            company=company or news_prompt,
         )
     else:
         if use_llm and not client.ready:
@@ -72,7 +80,7 @@ def build_plan(
             paper_title=paper_title,
             date_label=date_label,
             articles=articles,
-            company=company,
+            company=company or news_prompt,
         )
 
     ordered, meta = _apply_edits(articles, edited)
@@ -100,6 +108,7 @@ def generate_edition(
     use_llm: bool = True,
     email_to: str | None = None,
     out_dir: Path | None = None,
+    news_prompt: str | None = None,
 ) -> dict:
     config = StudioConfig()
     template = template or config.default_template
@@ -114,6 +123,7 @@ def generate_edition(
         company=company,
         use_llm=use_llm,
         config=config,
+        news_prompt=news_prompt,
     )
     html = render_html(plan, template_id=template, pages=pages)
 
@@ -183,6 +193,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-articles", type=int, default=12)
     parser.add_argument("--no-llm", action="store_true", help="Skip model calls; use offline editor")
     parser.add_argument("--email", default=None, help="Send finished edition to this address")
+    parser.add_argument("--prompt", default=None, help="Natural-language news desk prompt")
     parser.add_argument("--all-templates", action="store_true", help="Render every ready-made template")
     args = parser.parse_args(argv)
 
@@ -201,6 +212,7 @@ def main(argv: list[str] | None = None) -> int:
             company=args.company,
             use_llm=not args.no_llm,
             email_to=args.email if template == templates[-1] else None,
+            news_prompt=args.prompt,
         )
         print(json.dumps(result, indent=2))
     return 0

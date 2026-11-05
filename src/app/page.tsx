@@ -6,109 +6,118 @@ export default function HomePage() {
     <main className="min-h-screen overflow-hidden">
       <SiteHeader
         right={
-          <Link href="/setup" className="btn-ghost">
-            Start free
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/studio" className="btn-ghost hidden sm:inline-flex">
+              Templates
+            </Link>
+            <Link href="/setup" className="btn-secondary !h-10 !px-4 !text-[13px]">
+              Start free
+            </Link>
+          </div>
         }
       />
 
-      <section className="relative mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-[1120px] flex-col justify-center px-6 pb-28 pt-8 sm:px-10">
+      <section className="relative min-h-[calc(100vh-3.5rem)]">
         <div
           aria-hidden
-          className="pointer-events-none absolute left-1/2 top-8 h-[520px] w-[920px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(0,113,227,0.12),transparent_62%)] blur-2xl"
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "linear-gradient(90deg, rgba(251,251,253,0.92) 0%, rgba(251,251,253,0.78) 42%, rgba(251,251,253,0.35) 100%), url('/hero/morning-print-ritual.jpg')",
+          }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(700px 420px at 20% 30%, rgba(0,113,227,0.10), transparent 60%)",
+          }}
         />
 
-        <div className="relative z-10 mx-auto max-w-[720px] text-center">
-          <p className="reveal text-[12px] font-semibold uppercase tracking-[0.24em] text-[hsl(var(--apple-blue))]">
-            Personal morning newspaper
-          </p>
-          <h1 className="reveal reveal-delay-1 font-display mt-6 text-[clamp(3.8rem,11vw,7.2rem)] font-semibold leading-[0.9] tracking-[-0.045em] text-[hsl(var(--ink))]">
-            The AI Times
-          </h1>
-          <p className="reveal reveal-delay-2 mx-auto mt-7 max-w-[34rem] text-[18px] leading-[1.55] text-[hsl(var(--muted-foreground))]">
-            Only the news you asked for. Delivered by email every morning, printed at your desk,
-            interrupted only for breaking stories that matter.
-          </p>
-          <div className="reveal reveal-delay-3 mt-11 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/setup" className="btn-primary min-w-[180px]">
-              Compose your paper
-            </Link>
-            <Link href="/company" className="btn-secondary min-w-[180px]">
-              Company paper
-            </Link>
-            <Link href="/studio" className="btn-secondary min-w-[180px]">
-              Design studio
-            </Link>
-          </div>
-        </div>
-
-        <div
-          aria-hidden
-          className="reveal reveal-delay-3 relative z-10 mx-auto mt-16 w-full max-w-[560px]"
-        >
-          <div className="paper-sheet mx-auto rotate-[-1.5deg] rounded-[2px] px-8 py-9 sm:px-12 sm:py-11">
-            <div className="text-center">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[hsl(var(--masthead))]">
-                Morning fold
-              </div>
-              <div className="font-display mt-3 text-[clamp(1.8rem,4vw,2.6rem)] font-semibold tracking-[-0.03em]">
-                The Reader Times
-              </div>
-              <div className="ink-rule-thick mx-auto mt-5 w-full" />
-              <div className="mt-5 flex justify-between text-[10px] font-medium uppercase tracking-[0.14em] text-[hsl(var(--muted-foreground))]">
-                <span>Thursday edition</span>
-                <span>No ads</span>
-                <span>Page 1</span>
-              </div>
-              <div className="ink-rule mt-3 w-full" />
-              <div className="mt-7 space-y-3 text-left">
-                <div className="h-3.5 w-[72%] rounded-full bg-[hsl(var(--ink))]/90" />
-                <div className="h-2 w-full rounded-full bg-[hsl(var(--ink))]/12" />
-                <div className="h-2 w-[96%] rounded-full bg-[hsl(var(--ink))]/12" />
-                <div className="h-2 w-[91%] rounded-full bg-[hsl(var(--ink))]/12" />
-                <div className="mt-8 grid grid-cols-2 gap-8">
-                  <div className="space-y-2.5 border-t border-black/10 pt-4">
-                    <div className="h-2.5 w-[70%] rounded-full bg-[hsl(var(--ink))]/70" />
-                    <div className="h-2 w-full rounded-full bg-[hsl(var(--ink))]/10" />
-                    <div className="h-2 w-[88%] rounded-full bg-[hsl(var(--ink))]/10" />
-                  </div>
-                  <div className="space-y-2.5 border-t border-black/10 pt-4">
-                    <div className="h-2.5 w-[64%] rounded-full bg-[hsl(var(--ink))]/70" />
-                    <div className="h-2 w-full rounded-full bg-[hsl(var(--ink))]/10" />
-                    <div className="h-2 w-[80%] rounded-full bg-[hsl(var(--ink))]/10" />
-                  </div>
-                </div>
-              </div>
+        <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-[1120px] flex-col justify-center px-6 py-16 sm:px-10">
+          <div className="max-w-xl">
+            <p className="reveal text-[12px] font-semibold uppercase tracking-[0.24em] text-[hsl(var(--apple-blue))]">
+              Alarm 6:00 · Printer 6:05
+            </p>
+            <h1 className="reveal reveal-delay-1 font-display mt-5 text-[clamp(3.4rem,9vw,6.4rem)] font-semibold leading-[0.92] tracking-[-0.045em] text-[hsl(var(--ink))]">
+              The AI Times
+            </h1>
+            <p className="reveal reveal-delay-2 mt-6 max-w-md text-[18px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+              Tell it what news you want. Bring your own OpenAI, Claude, Gemini, or Groq key.
+              Wake up to email — and a paper already printing.
+            </p>
+            <div className="reveal reveal-delay-3 mt-10 flex flex-wrap gap-3">
+              <Link href="/setup" className="btn-primary min-w-[170px]">
+                Compose your paper
+              </Link>
+              <Link href="/company" className="btn-secondary min-w-[170px]">
+                Company paper
+              </Link>
+              <Link href="/studio" className="btn-secondary min-w-[170px]">
+                Design studio
+              </Link>
+            </div>
+            <div className="reveal reveal-delay-3 mt-8 flex flex-wrap gap-2 text-[12px] font-medium text-[hsl(var(--muted-foreground))]">
+              {["News prompt", "BYOK models", "Scrapling desk", "Auto print"].map((chip) => (
+                <span
+                  key={chip}
+                  className="rounded-full border border-black/[0.08] bg-white/70 px-3 py-1 backdrop-blur"
+                >
+                  {chip}
+                </span>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
       <section className="border-t border-black/[0.05] bg-[#fbfbfd]">
-        <div className="mx-auto grid max-w-[1120px] gap-14 px-6 py-24 sm:px-10 md:grid-cols-3">
-          {[
-            {
-              title: "Personal or company",
-              body: "Compose a private masthead for yourself — or a company paper tuned to brand, market, and competitors.",
-            },
-            {
-              title: "Premium wires + Scrapling",
-              body: "BBC, Guardian, TechCrunch, AP/Bloomberg feeds, plus an always-on Scrapling desk that never sleeps.",
-            },
-            {
-              title: "Hands-free print loop",
-              body: "CUPS, IPP, and PDF printers with saved settings. Auto-print every morning without another click.",
-            },
-          ].map((item) => (
-            <div key={item.title} className="max-w-sm">
-              <h2 className="font-display text-[1.85rem] font-semibold tracking-[-0.025em] text-[hsl(var(--ink))]">
-                {item.title}
-              </h2>
-              <p className="mt-3 text-[15px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-                {item.body}
-              </p>
-            </div>
-          ))}
+        <div className="mx-auto max-w-[1120px] px-6 py-20 sm:px-10">
+          <div className="max-w-2xl">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--apple-blue))]">
+              How it works
+            </p>
+            <h2 className="font-display mt-3 text-[clamp(2rem,4vw,3rem)] font-semibold tracking-[-0.03em]">
+              Prompt. Rank. Design. Deliver.
+            </h2>
+          </div>
+          <div className="mt-12 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                step: "01",
+                title: "Describe your desk",
+                body: "Write a plain-English prompt for the stories you want — and the noise to ignore.",
+              },
+              {
+                step: "02",
+                title: "Bring your own key",
+                body: "Optional BYOK for OpenAI, Claude, Gemini, Groq, Ollama, or any OpenAI-compatible model.",
+              },
+              {
+                step: "03",
+                title: "Always-on collection",
+                body: "Premium wires + Scrapling keep ranking signal all day for morning and breaking alerts.",
+              },
+              {
+                step: "04",
+                title: "6am print ritual",
+                body: "Email lands first. The print daemon sends the edition to your printer without another click.",
+              },
+            ].map((item) => (
+              <div key={item.step}>
+                <div className="text-[12px] font-semibold tracking-[0.16em] text-[hsl(var(--muted-foreground))]">
+                  {item.step}
+                </div>
+                <h3 className="font-display mt-3 text-[1.55rem] font-semibold tracking-[-0.02em]">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                  {item.body}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     </main>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { INTEREST_CATALOG } from "@/lib/interests";
+import { LLM_PROVIDERS, type LlmProviderId } from "@/lib/llm-providers";
 import { TITLE_OPTIONS } from "@/lib/paper-titles";
 import { saveProfile } from "@/lib/storage";
 import type { ColorMode, PaperKind, PaperTitleStyle, UserProfile } from "@/lib/types";
@@ -22,15 +23,24 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
   const [titleStyle, setTitleStyle] = useState<PaperTitleStyle>("the-times");
   const [customTitle, setCustomTitle] = useState("");
   const [interests, setInterests] = useState<string[]>(["technology", "world", "business"]);
+  const [newsPrompt, setNewsPrompt] = useState(
+    "I want useful morning coverage on AI, markets, and major world events — skip celebrity gossip and shopping content.",
+  );
+  const [byokEnabled, setByokEnabled] = useState(false);
+  const [provider, setProvider] = useState<LlmProviderId>("openai");
+  const [apiKey, setApiKey] = useState("");
+  const [baseUrl, setBaseUrl] = useState(LLM_PROVIDERS[0].baseUrl);
+  const [model, setModel] = useState(LLM_PROVIDERS[0].defaultModel);
   const [colorMode, setColorMode] = useState<ColorMode>("bw");
-  const [emailTime, setEmailTime] = useState("07:00");
+  const [emailTime, setEmailTime] = useState("06:00");
   const [printEnabled, setPrintEnabled] = useState(true);
-  const [printTime, setPrintTime] = useState("07:05");
+  const [printTime, setPrintTime] = useState("06:05");
   const [breakingNews, setBreakingNews] = useState(true);
   const [pageCount, setPageCount] = useState<"auto" | number>("auto");
   const [error, setError] = useState<string | null>(null);
 
   const displayName = kind === "company" ? companyName || name : name;
+  const selectedProvider = LLM_PROVIDERS.find((p) => p.id === provider)!;
 
   const previewTitle = useMemo(() => {
     if (kind === "company" && (customTitle.trim() || companyName.trim())) {
@@ -40,6 +50,13 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
     if (titleStyle === "custom") return customTitle.trim() || "Your custom masthead";
     return option.example(displayName.trim() || "Reader");
   }, [titleStyle, customTitle, displayName, kind, companyName]);
+
+  function selectProvider(id: LlmProviderId) {
+    const next = LLM_PROVIDERS.find((p) => p.id === id)!;
+    setProvider(id);
+    setBaseUrl(next.baseUrl);
+    setModel(next.defaultModel);
+  }
 
   function toggleInterest(id: string) {
     setInterests((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -62,8 +79,13 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
       setStep(0);
       return;
     }
-    if (interests.length === 0) {
-      setError("Pick at least one interest.");
+    if (interests.length === 0 && !newsPrompt.trim()) {
+      setError("Pick interests or write a news prompt.");
+      setStep(1);
+      return;
+    }
+    if (byokEnabled && !apiKey.trim()) {
+      setError("Paste your API key or turn off Bring Your Own Key.");
       setStep(1);
       return;
     }
@@ -75,6 +97,14 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
       titleStyle,
       customTitle: customTitle.trim() || undefined,
       interests,
+      newsPrompt: newsPrompt.trim() || undefined,
+      byok: {
+        enabled: byokEnabled,
+        provider,
+        apiKey: apiKey.trim(),
+        baseUrl: baseUrl.trim() || selectedProvider.baseUrl,
+        model: model.trim() || selectedProvider.defaultModel,
+      },
       colorMode,
       emailTime,
       printEnabled,
@@ -106,7 +136,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
   }
 
   return (
-    <div className="mx-auto w-full max-w-[640px]">
+    <div className="mx-auto w-full max-w-6xl">
       <div className="mb-10 flex flex-wrap gap-2">
         {STEPS.map((label, index) => (
           <button
@@ -125,18 +155,15 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
       </div>
 
       {step === 0 && (
-        <div className="space-y-8">
+        <div className="mx-auto max-w-[640px] space-y-8">
           <div>
-            <h1 className="font-display text-[clamp(2.4rem,6vw,3.5rem)] font-semibold tracking-[-0.03em] text-[hsl(var(--ink))]">
+            <h1 className="font-display text-[clamp(2.4rem,6vw,3.5rem)] font-semibold tracking-[-0.03em]">
               {kind === "company" ? "Company paper" : "Name your paper"}
             </h1>
             <p className="mt-3 max-w-md text-[16px] text-[hsl(var(--muted-foreground))]">
-              {kind === "company"
-                ? "Build a private company newspaper from premium wires + Scrapling collection around your brand, market, and competitors."
-                : "Your masthead, your interests, your printer. No ads. No filler."}
+              Masthead first. Interests and your BYOK model come next.
             </p>
           </div>
-
           <div className="grid grid-cols-2 gap-2">
             {(["personal", "company"] as const).map((value) => (
               <button
@@ -153,7 +180,6 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
               </button>
             ))}
           </div>
-
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-2">
               <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
@@ -163,7 +189,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Sairam"
-                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none ring-[hsl(var(--apple-blue))] transition focus:ring-2"
+                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
               />
             </label>
             <label className="block space-y-2">
@@ -173,101 +199,64 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none ring-[hsl(var(--apple-blue))] transition focus:ring-2"
+                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
               />
             </label>
           </div>
-
           {kind === "company" ? (
             <div className="space-y-4">
-              <label className="block space-y-2">
-                <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Company name</span>
-                <input
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Acme Robotics"
-                  className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none ring-[hsl(var(--apple-blue))] transition focus:ring-2"
-                />
-              </label>
-              <label className="block space-y-2">
-                <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Industry</span>
-                <input
-                  value={industry}
-                  onChange={(e) => setIndustry(e.target.value)}
-                  placeholder="Semiconductors"
-                  className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none ring-[hsl(var(--apple-blue))] transition focus:ring-2"
-                />
-              </label>
-              <label className="block space-y-2">
-                <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
-                  Keywords (comma-separated)
-                </span>
-                <input
-                  value={keywordsText}
-                  onChange={(e) => setKeywordsText(e.target.value)}
-                  placeholder="GPU, packaging, foundry, AI inference"
-                  className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none ring-[hsl(var(--apple-blue))] transition focus:ring-2"
-                />
-              </label>
-              <label className="block space-y-2">
-                <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
-                  Competitors (comma-separated)
-                </span>
-                <input
-                  value={competitorsText}
-                  onChange={(e) => setCompetitorsText(e.target.value)}
-                  placeholder="Competitor A, Competitor B"
-                  className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none ring-[hsl(var(--apple-blue))] transition focus:ring-2"
-                />
-              </label>
-              <label className="block space-y-2">
-                <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
-                  Custom masthead (optional)
-                </span>
-                <input
-                  value={customTitle}
-                  onChange={(e) => setCustomTitle(e.target.value)}
-                  placeholder="Acme Morning Brief"
-                  className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none ring-[hsl(var(--apple-blue))] transition focus:ring-2"
-                />
-              </label>
+              <input
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="Company name"
+                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+              />
+              <input
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value)}
+                placeholder="Industry"
+                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+              />
+              <input
+                value={keywordsText}
+                onChange={(e) => setKeywordsText(e.target.value)}
+                placeholder="Keywords, comma-separated"
+                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+              />
+              <input
+                value={competitorsText}
+                onChange={(e) => setCompetitorsText(e.target.value)}
+                placeholder="Competitors, comma-separated"
+                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+              />
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Masthead style</div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {TITLE_OPTIONS.map((option) => {
-                  const active = titleStyle === option.id;
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => setTitleStyle(option.id)}
-                      className={`choice ${active ? "choice-active" : ""}`}
-                    >
-                      <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[hsl(var(--muted-foreground))]">
-                        {option.label}
-                      </div>
-                      <div className="font-display mt-1 text-[18px] font-semibold tracking-[-0.02em]">
-                        {option.id === "custom"
-                          ? "Write your own"
-                          : option.example(name.trim() || "Reader")}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              {titleStyle === "custom" ? (
-                <input
-                  value={customTitle}
-                  onChange={(e) => setCustomTitle(e.target.value)}
-                  placeholder="The Midnight Dispatch"
-                  className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none ring-[hsl(var(--apple-blue))] transition focus:ring-2"
-                />
-              ) : null}
+            <div className="grid gap-2 sm:grid-cols-2">
+              {TITLE_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setTitleStyle(option.id)}
+                  className={`choice ${titleStyle === option.id ? "choice-active" : ""}`}
+                >
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[hsl(var(--muted-foreground))]">
+                    {option.label}
+                  </div>
+                  <div className="font-display mt-1 text-lg font-semibold">
+                    {option.id === "custom" ? "Write your own" : option.example(name.trim() || "Reader")}
+                  </div>
+                </button>
+              ))}
             </div>
           )}
-
+          {(titleStyle === "custom" || kind === "company") && (
+            <input
+              value={customTitle}
+              onChange={(e) => setCustomTitle(e.target.value)}
+              placeholder="Custom masthead (optional)"
+              className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+            />
+          )}
           <p className="text-[14px] text-[hsl(var(--muted-foreground))]">
             Preview: <span className="font-display font-semibold text-[hsl(var(--ink))]">{previewTitle}</span>
           </p>
@@ -275,83 +264,183 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
       )}
 
       {step === 1 && (
-        <div className="space-y-8">
-          <div>
-            <h1 className="font-display text-[clamp(2.4rem,6vw,3.5rem)] font-semibold tracking-[-0.03em] text-[hsl(var(--ink))]">
-              What matters
-            </h1>
-            <p className="mt-3 max-w-md text-[16px] text-[hsl(var(--muted-foreground))]">
-              Sourced from BBC, Guardian, TechCrunch, AP/Bloomberg wires via Google News, plus Scrapling HTML desks.
-            </p>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {INTEREST_CATALOG.map((interest) => {
-              const checked = interests.includes(interest.id);
-              return (
-                <label
-                  key={interest.id}
-                  className={`choice flex cursor-pointer items-center gap-3 ${checked ? "choice-active" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleInterest(interest.id)}
-                    className="h-4 w-4 accent-[hsl(var(--apple-blue))]"
-                  />
-                  <span className="text-[15px] font-medium">{interest.label}</span>
-                </label>
-              );
-            })}
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-8">
+            <div>
+              <h1 className="font-display text-[clamp(2.4rem,6vw,3.5rem)] font-semibold tracking-[-0.03em]">
+                What matters
+              </h1>
+              <p className="mt-3 max-w-xl text-[16px] text-[hsl(var(--muted-foreground))]">
+                Describe the newspaper you want in plain English, then optionally narrow with topics.
+              </p>
+            </div>
+
             <label className="block space-y-2">
-              <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Pages</span>
-              <select
-                value={pageCount === "auto" ? "auto" : String(pageCount)}
-                onChange={(e) =>
-                  setPageCount(e.target.value === "auto" ? "auto" : Number(e.target.value))
-                }
-                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none"
-              >
-                <option value="auto">Auto</option>
-                {[2, 3, 4, 5, 6, 8].map((n) => (
-                  <option key={n} value={n}>
-                    {n} pages
-                  </option>
-                ))}
-              </select>
+              <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
+                News prompt
+              </span>
+              <textarea
+                value={newsPrompt}
+                onChange={(e) => setNewsPrompt(e.target.value)}
+                rows={5}
+                placeholder="Example: Cover semiconductor supply chains, Fed policy, and India tech startups. Ignore sports and celebrity news."
+                className="w-full rounded-2xl border border-black/[0.08] bg-white px-4 py-3 text-[15px] leading-relaxed outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+              />
             </label>
-            <div className="space-y-2">
-              <div className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Print color</div>
-              <div className="grid grid-cols-2 gap-2">
-                {(["bw", "color"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setColorMode(mode)}
-                    className={`h-12 rounded-2xl border text-[14px] font-medium ${
-                      colorMode === mode
-                        ? "border-transparent bg-[hsl(var(--ink))] text-white"
-                        : "border-black/[0.08] bg-white"
-                    }`}
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {INTEREST_CATALOG.map((interest) => {
+                const checked = interests.includes(interest.id);
+                return (
+                  <label
+                    key={interest.id}
+                    className={`choice flex cursor-pointer items-center gap-3 ${checked ? "choice-active" : ""}`}
                   >
-                    {mode === "bw" ? "Black & white" : "Color"}
-                  </button>
-                ))}
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleInterest(interest.id)}
+                      className="h-4 w-4 accent-[hsl(var(--apple-blue))]"
+                    />
+                    <span className="text-[15px] font-medium">{interest.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block space-y-2">
+                <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Pages</span>
+                <select
+                  value={pageCount === "auto" ? "auto" : String(pageCount)}
+                  onChange={(e) =>
+                    setPageCount(e.target.value === "auto" ? "auto" : Number(e.target.value))
+                  }
+                  className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none"
+                >
+                  <option value="auto">Auto</option>
+                  {[2, 3, 4, 5, 6, 8].map((n) => (
+                    <option key={n} value={n}>
+                      {n} pages
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="space-y-2">
+                <div className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">Print color</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["bw", "color"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setColorMode(mode)}
+                      className={`h-12 rounded-2xl border text-[14px] font-medium ${
+                        colorMode === mode
+                          ? "border-transparent bg-[hsl(var(--ink))] text-white"
+                          : "border-black/[0.08] bg-white"
+                      }`}
+                    >
+                      {mode === "bw" ? "Black & white" : "Color"}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
+
+          <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+            <div className="surface rounded-[28px] p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[hsl(var(--muted-foreground))]">
+                    Bring your own key
+                  </div>
+                  <h2 className="font-display mt-1 text-2xl font-semibold tracking-[-0.02em]">
+                    Model desk
+                  </h2>
+                </div>
+                <label className="flex items-center gap-2 text-[13px] font-medium">
+                  <input
+                    type="checkbox"
+                    checked={byokEnabled}
+                    onChange={(e) => setByokEnabled(e.target.checked)}
+                    className="h-4 w-4 accent-[hsl(var(--apple-blue))]"
+                  />
+                  ON
+                </label>
+              </div>
+              <p className="mt-2 text-[13px] text-[hsl(var(--muted-foreground))]">
+                Use OpenAI, Claude, Gemini, Groq, Ollama, or any OpenAI-compatible small model.
+                Keys stay in your browser profile.
+              </p>
+
+              <div className={`mt-4 space-y-3 ${byokEnabled ? "" : "pointer-events-none opacity-45"}`}>
+                <div className="grid grid-cols-2 gap-2">
+                  {LLM_PROVIDERS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => selectProvider(item.id)}
+                      className={`rounded-xl border px-3 py-2 text-left text-[12px] font-semibold ${
+                        provider === item.id
+                          ? "border-[rgba(0,113,227,0.5)] bg-[rgba(0,113,227,0.06)]"
+                          : "border-black/[0.08] bg-white"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <label className="block space-y-1.5">
+                  <span className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">API key</span>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="sk-... / AIza... / ollama"
+                    className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3 text-[14px] outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+                  />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">Base URL</span>
+                  <input
+                    value={baseUrl}
+                    onChange={(e) => setBaseUrl(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3 text-[13px] outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+                  />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-[12px] font-medium text-[hsl(var(--muted-foreground))]">Model</span>
+                  <input
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3 text-[14px] outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+                  />
+                </label>
+                <p className="text-[12px] text-[hsl(var(--muted-foreground))]">{selectedProvider.hint}</p>
+              </div>
+            </div>
+
+            <div className="rounded-[22px] border border-black/[0.06] bg-white/80 p-5 text-[13px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+              <div className="font-medium text-[hsl(var(--ink))]">How this step works</div>
+              <ol className="mt-2 list-decimal space-y-1.5 pl-4">
+                <li>Your prompt steers ranking and LLM editing.</li>
+                <li>Topic chips narrow the premium wire sources.</li>
+                <li>BYOK is optional — offline desk editor still works.</li>
+              </ol>
+            </div>
+          </aside>
         </div>
       )}
 
       {step === 2 && (
-        <div className="space-y-8">
+        <div className="mx-auto max-w-[640px] space-y-8">
           <div>
-            <h1 className="font-display text-[clamp(2.4rem,6vw,3.5rem)] font-semibold tracking-[-0.03em] text-[hsl(var(--ink))]">
-              Always-on delivery
+            <h1 className="font-display text-[clamp(2.4rem,6vw,3.5rem)] font-semibold tracking-[-0.03em]">
+              Morning ritual
             </h1>
             <p className="mt-3 max-w-md text-[16px] text-[hsl(var(--muted-foreground))]">
-              News agent scrapes all day. Print daemon loops forever and sends jobs at your time — no click required.
+              Default is 6:00 email and 6:05 print — alarm, paper, done.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -361,7 +450,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
                 type="time"
                 value={emailTime}
                 onChange={(e) => setEmailTime(e.target.value)}
-                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none"
+                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none"
               />
             </label>
             <label className="block space-y-2">
@@ -371,7 +460,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
                 value={printTime}
                 onChange={(e) => setPrintTime(e.target.value)}
                 disabled={!printEnabled}
-                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 text-[15px] outline-none disabled:opacity-40"
+                className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none disabled:opacity-40"
               />
             </label>
           </div>
@@ -379,7 +468,7 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
             <div>
               <div className="text-[15px] font-medium">Hands-free printer loop</div>
               <div className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
-                `npm run agent:print` discovers CUPS/IPP printers and auto-prints daily
+                Auto-prints at your time via `npm run agent:print`
               </div>
             </div>
             <input
@@ -391,9 +480,9 @@ export function SetupWizard({ initialKind = "personal" }: { initialKind?: PaperK
           </label>
           <label className="choice flex cursor-pointer items-center justify-between gap-4">
             <div>
-              <div className="text-[15px] font-medium">Breaking desk (non-stop)</div>
+              <div className="text-[15px] font-medium">Breaking desk</div>
               <div className="mt-1 text-[13px] text-[hsl(var(--muted-foreground))]">
-                `npm run agent:news` keeps Scrapling + premium wires running
+                Non-stop Scrapling + wire alerts
               </div>
             </div>
             <input

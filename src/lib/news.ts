@@ -139,17 +139,33 @@ function companyBoost(article: NewsArticle, company?: CompanyInfo) {
   return boost;
 }
 
+function promptTokens(prompt?: string) {
+  if (!prompt) return [] as string[];
+  return prompt
+    .toLowerCase()
+    .split(/[^a-z0-9+]+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 3 && !["want", "with", "from", "that", "this", "have", "news", "only", "skip", "about"].includes(t));
+}
+
 function scoreArticle(
   article: NewsArticle,
   keywords: string[],
   interests: string[],
   company?: CompanyInfo,
+  newsPrompt?: string,
 ) {
   const text = `${article.title} ${article.summary} ${article.category}`.toLowerCase();
   let score = article.score ?? 0;
   if (interests.includes(article.category)) score += 4;
   for (const keyword of keywords) {
     if (text.includes(keyword.toLowerCase())) score += 2;
+  }
+  for (const token of promptTokens(newsPrompt)) {
+    if (text.includes(token)) score += 1.5;
+  }
+  if (newsPrompt && /skip|ignore|no celebrity|no gossip|no shopping/i.test(newsPrompt)) {
+    if (/celebrity|gossip|shopping|gift guide/i.test(text)) score -= 6;
   }
   if (article.breaking) score += 3;
   score += companyBoost(article, company);
@@ -187,6 +203,7 @@ async function fetchFeed(feed: (typeof FEEDS)[number]): Promise<NewsArticle[]> {
 export async function gatherArticles(
   interests: string[],
   company?: CompanyInfo,
+  newsPrompt?: string,
 ): Promise<NewsArticle[]> {
   const selectedFeeds =
     interests.length === 0
@@ -200,6 +217,7 @@ export async function gatherArticles(
   const effective = pool.length > 0 ? pool : FALLBACK;
   const keywords = [
     ...keywordsForInterests(interests),
+    ...promptTokens(newsPrompt),
     ...(company?.keywords || []),
     company?.companyName || "",
   ].filter(Boolean);
@@ -208,9 +226,9 @@ export async function gatherArticles(
     .filter((article) => !isSlop(article.title, article.summary))
     .map((article) => ({
       article,
-      score: scoreArticle(article, keywords, interests, company),
+      score: scoreArticle(article, keywords, interests, company, newsPrompt),
     }))
-    .filter(({ score }) => score > 0 || interests.length === 0)
+    .filter(({ score }) => score > 0 || interests.length === 0 || Boolean(newsPrompt))
     .sort((a, b) => b.score - a.score)
     .map(({ article, score }) => ({ ...article, score }));
 }
@@ -249,10 +267,18 @@ function paginate(articles: NewsArticle[], pageCount: "auto" | number): EditionP
 export async function buildEdition(
   profile: Pick<
     UserProfile,
-    "name" | "titleStyle" | "customTitle" | "interests" | "colorMode" | "pageCount" | "kind" | "company"
+    | "name"
+    | "titleStyle"
+    | "customTitle"
+    | "interests"
+    | "colorMode"
+    | "pageCount"
+    | "kind"
+    | "company"
+    | "newsPrompt"
   >,
 ): Promise<NewspaperEdition> {
-  const articles = await gatherArticles(profile.interests, profile.company);
+  const articles = await gatherArticles(profile.interests, profile.company, profile.newsPrompt);
   const limited = articles.slice(0, profile.pageCount === "auto" ? 18 : Number(profile.pageCount) * 4);
   const now = new Date();
   const paperTitle =

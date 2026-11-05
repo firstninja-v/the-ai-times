@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import { loadProfile } from "@/lib/storage";
+import type { ByokConfig } from "@/lib/types";
 
 type TemplateCard = {
   id: string;
@@ -55,11 +57,13 @@ export default function StudioPage() {
   const [template, setTemplate] = useState("classic");
   const [title, setTitle] = useState("The AI Times");
   const [email, setEmail] = useState("");
+  const [newsPrompt, setNewsPrompt] = useState("");
   const [useLlm, setUseLlm] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [openUrl, setOpenUrl] = useState<string | null>(null);
   const [previewBroken, setPreviewBroken] = useState<Record<string, boolean>>({});
+  const [byok, setByok] = useState<ByokConfig | undefined>(undefined);
 
   const selected = useMemo(
     () => templates.find((t) => t.id === template) ?? templates[0],
@@ -67,6 +71,21 @@ export default function StudioPage() {
   );
 
   useEffect(() => {
+    const profile = loadProfile();
+    if (profile) {
+      setTitle(
+        profile.customTitle ||
+          (profile.company?.companyName
+            ? `The ${profile.company.companyName} Times`
+            : `The ${profile.name} Times`),
+      );
+      setEmail(profile.email || "");
+      setNewsPrompt(profile.newsPrompt || "");
+      if (profile.byok?.enabled) {
+        setByok(profile.byok);
+        setUseLlm(true);
+      }
+    }
     void fetch("/api/newspaper/templates")
       .then((r) => r.json())
       .then((data) => {
@@ -94,6 +113,8 @@ export default function StudioPage() {
           email: email || undefined,
           useLlm,
           pages: 4,
+          newsPrompt: newsPrompt || undefined,
+          byok: byok?.enabled ? byok : undefined,
         }),
       });
       const data = await res.json();
@@ -248,11 +269,25 @@ export default function StudioPage() {
                     className="h-12 w-full rounded-2xl border border-black/[0.08] bg-white px-4 outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
                   />
                 </label>
+                <label className="block space-y-2">
+                  <span className="text-[13px] font-medium text-[hsl(var(--muted-foreground))]">
+                    News prompt
+                  </span>
+                  <textarea
+                    value={newsPrompt}
+                    onChange={(e) => setNewsPrompt(e.target.value)}
+                    rows={3}
+                    placeholder="What should today’s paper cover?"
+                    className="w-full rounded-2xl border border-black/[0.08] bg-white px-4 py-3 text-[14px] outline-none focus:ring-2 focus:ring-[hsl(var(--apple-blue))]"
+                  />
+                </label>
                 <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-black/[0.08] bg-white px-4 py-3">
                   <div>
-                    <div className="text-[14px] font-medium">Use small model API</div>
+                    <div className="text-[14px] font-medium">Use BYOK / small model</div>
                     <div className="text-[12px] text-[hsl(var(--muted-foreground))]">
-                      LLM_API_KEY + LLM_BASE_URL + LLM_MODEL
+                      {byok?.enabled
+                        ? `${byok.provider} · ${byok.model}`
+                        : "Set key in Setup → Interests"}
                     </div>
                   </div>
                   <input
